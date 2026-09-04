@@ -112,7 +112,7 @@ export default function ApiSection() {
   };
 
   return (
-    <Section id="api" index="06" label="API" dark full>
+    <Section id="api" index="07" label="API" dark full>
       <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-16">
         <Reveal>
           <div className="ui-label mb-5 flex items-center gap-2 text-accent">

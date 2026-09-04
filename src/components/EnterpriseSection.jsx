@@ -17,7 +17,7 @@ const SPEC = [
 
 export default function EnterpriseSection() {
   return (
-    <Section id="enterprise" index="07" label="Enterprise" full>
+    <Section id="enterprise" index="08" label="Enterprise" full>
       <SectionHead
         eyebrow="Enterprise"
         title="Every model for the company. None of the company for them."

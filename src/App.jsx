@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import HeroSection from './components/HeroSection';
 import RoutingStrip from './components/RoutingStrip';
 import LayerSection from './components/LayerSection';
+import FormatsSection from './components/FormatsSection';
 import ModelsSection from './components/ModelsSection';
 import CouncilMode from './components/CouncilMode';
 import PrivacySection from './components/PrivacySection';
@@ -19,6 +20,7 @@ function Landing() {
       <HeroSection />
       <RoutingStrip />
       <LayerSection />
+      <FormatsSection />
       <ModelsSection />
       <CouncilMode />
       <PrivacySection />

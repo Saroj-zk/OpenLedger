@@ -137,3 +137,85 @@ export function BrandTile({ code, size = 34, lifted = false, className = '' }) {
     </span>
   );
 }
+
+/* =====================================================================
+   Format tiles
+   The same app-icon build, for what the models produce rather than who
+   makes them.
+   ===================================================================== */
+
+export const FORMATS = {
+  text: { label: 'Text', base: '#3F4756', top: '#6B7688' },
+  image: { label: 'Images', base: '#7C3AED', top: '#9B6BFF' },
+  audio: { label: 'Audio', base: '#0D9488', top: '#2DD4BF' },
+  video: { label: 'Video', base: '#E11D48', top: '#FB6A87' },
+};
+
+function FormatGlyph({ kind }) {
+  const s = { fill: 'none', stroke: '#fff', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' };
+
+  switch (kind) {
+    case 'text':
+      return (
+        <>
+          <path d="M5.5 7.5h13M5.5 12h13M5.5 16.5h8" {...s} />
+        </>
+      );
+    case 'image':
+      return (
+        <>
+          <rect x="4" y="5.5" width="16" height="13" rx="2.4" {...s} />
+          <circle cx="9" cy="10" r="1.5" fill="#fff" stroke="none" />
+          <path d="M4.8 16.6 9.6 12l3.2 3 2.6-2.4 3.8 4" {...s} />
+        </>
+      );
+    case 'audio':
+      return (
+        <g fill="#fff" stroke="none">
+          <rect x="4.6" y="10.4" width="2.2" height="3.2" rx="1.1" />
+          <rect x="8.4" y="7.6" width="2.2" height="8.8" rx="1.1" />
+          <rect x="12.2" y="5.4" width="2.2" height="13.2" rx="1.1" />
+          <rect x="16" y="9" width="2.2" height="6" rx="1.1" />
+        </g>
+      );
+    case 'video':
+      return (
+        <>
+          <rect x="3.6" y="5.8" width="16.8" height="12.4" rx="2.6" {...s} />
+          <path d="M10.6 10.2 14.6 12l-4 1.8z" fill="#fff" stroke="none" />
+        </>
+      );
+    default:
+      return null;
+  }
+}
+
+export function FormatTile({ kind, size = 40, className = '' }) {
+  const f = FORMATS[kind] || FORMATS.text;
+  const radius = Math.round(size * 0.28);
+
+  return (
+    <span
+      className={`relative inline-block shrink-0 ${className}`}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        background: `linear-gradient(157deg, ${f.top} 0%, ${f.base} 62%, ${f.base} 100%)`,
+        boxShadow: `0 8px 18px -6px ${f.base}66, 0 1px 2px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.45)`,
+      }}
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 24 24" width={size} height={size} style={{ display: 'block' }}>
+        <FormatGlyph kind={kind} />
+      </svg>
+      <span
+        className="pointer-events-none absolute inset-0"
+        style={{
+          borderRadius: radius,
+          background: 'linear-gradient(180deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 46%)',
+        }}
+      />
+    </span>
+  );
+}

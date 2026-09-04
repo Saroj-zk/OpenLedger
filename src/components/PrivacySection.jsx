@@ -14,7 +14,7 @@ const LEDGER = [
 
 export default function PrivacySection() {
   return (
-    <Section id="privacy" index="04" label="Privacy" full>
+    <Section id="privacy" index="05" label="Privacy" full>
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
         <Reveal>
           <div className="ui-label mb-5 flex items-center gap-2 text-accent">

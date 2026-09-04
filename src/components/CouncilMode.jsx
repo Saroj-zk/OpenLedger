@@ -135,7 +135,7 @@ export default function CouncilMode() {
   const clock = useRunClock(phase >= 1, phase >= 4, 6200);
 
   return (
-    <Section id="council" index="03" label="Council" dark grid>
+    <Section id="council" index="04" label="Council" dark grid>
       <div ref={ref}>
         {/* ------------------------------------------------------ header */}
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-16">

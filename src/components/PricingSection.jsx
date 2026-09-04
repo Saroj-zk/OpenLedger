@@ -11,7 +11,7 @@ export default function PricingSection() {
   const saving = stackTotal - OUR_PRICE;
 
   return (
-    <Section id="pricing" index="05" label="Pricing" tint full>
+    <Section id="pricing" index="06" label="Pricing" tint full>
       <SectionHead
         eyebrow="Pricing"
         title="You are already paying for this four times."
