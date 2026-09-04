@@ -292,6 +292,15 @@ body {
   animation: caret-blink 1.1s steps(1) infinite;
 }
 
+/* A tilted card that straightens when you point at it. The rest angle
+   is set inline per card, so the hover has to outrank it. */
+.tilt-card {
+  transition: transform .5s cubic-bezier(.16, 1, .3, 1), box-shadow .5s;
+}
+.tilt-card:hover {
+  transform: rotate(0deg) translateY(-4px) !important;
+}
+
 /* Illustration scenes. These deliberately sit outside the page palette:
    they are pictures of the product, not more of its interface. */
 .scene {

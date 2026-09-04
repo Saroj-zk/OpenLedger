@@ -1,24 +1,18 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import { Section, SectionHead, Reveal, Mark } from './ui/Ledger';
 import { BrandTile } from './ui/Glyphs';
 import { PLANS, STACKED_PLANS, OUR_PRICE, TOKEN_SAVING, MODELS } from '../data/catalog';
 
 /* =====================================================================
    Pricing
-   Two arguments, in the order people care about them. First the stack
-   of subscriptions against the one that replaces it. Then the part that
-   keeps costing less after you have switched: the router only spends
-   what a request actually needs.
+   Two arguments. The pile of subscriptions against the one card that
+   replaces it, and then the part that keeps saving after the switch:
+   the router only spends what a request actually needs.
    ===================================================================== */
 
 const SHOWN_TILES = ['OA', 'AN', 'GG', 'XA', 'DS', 'MT'];
-
-const SEGMENT_STYLE = {
-  faint: { background: 'var(--rule-strong)', opacity: 0.55 },
-  mid: { background: 'color-mix(in srgb, var(--color-brand-accent) 45%, transparent)' },
-  accent: { background: 'var(--color-brand-accent)' },
-};
+const TILT = [-2.4, 1.8, 1.5, -2];
 
 export default function PricingSection() {
   const stackTotal = STACKED_PLANS.reduce((sum, p) => sum + p.price, 0);
@@ -33,28 +27,33 @@ export default function PricingSection() {
         meta={[{ label: 'You keep', value: `$${saving}` }]}
       />
 
-      {/* ------------------------------------------- the stack vs the one */}
-      <div className="mt-12 grid items-stretch gap-3.5 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,0.92fr)]">
+      {/* ------------------------------------------- the pile vs the one */}
+      <div className="mt-12 grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,0.85fr)]">
+        {/* what people pay today, scattered the way it feels */}
         <Reveal className="flex">
-          <div className="panel flex w-full flex-col p-5 sm:p-7">
+          <div className="flex w-full flex-col">
             <div className="ui-label mb-5 text-[color:var(--color-faint)]">Separate subscriptions</div>
 
-            <ul className="flex-1 space-y-1">
-              {STACKED_PLANS.map((p) => (
-                <li
+            <div className="grid flex-1 grid-cols-2 gap-3">
+              {STACKED_PLANS.map((p, i) => (
+                <div
                   key={p.app}
-                  className="flex items-center gap-3 rounded-[10px] border border-[color:var(--color-border)] bg-[color:var(--color-tertiary)] px-3 py-2.5"
+                  className="tilt-card rounded-[13px] border border-[color:var(--color-border)] bg-[color:var(--color-card)] p-4"
+                  style={{
+                    transform: `rotate(${TILT[i]}deg)`,
+                    boxShadow: '0 14px 28px -18px rgba(16,13,10,.5), 0 1px 2px rgba(16,13,10,.06)',
+                  }}
                 >
-                  <BrandTile code={p.code} size={28} />
-                  <span className="flex-1 truncate text-[14px] text-foreground">{p.app}</span>
-                  <span className="tabular font-mono text-[13px] text-[color:var(--color-graphite)]">${p.price}</span>
-                </li>
+                  <BrandTile code={p.code} size={32} />
+                  <div className="mt-3 truncate text-[13px] text-[color:var(--color-graphite)]">{p.app}</div>
+                  <div className="display tabular mt-0.5 text-[24px] leading-none text-foreground">${p.price}</div>
+                </div>
               ))}
-            </ul>
+            </div>
 
-            <div className="mt-5 flex items-baseline justify-between border-t border-[color:var(--color-border)] pt-4">
-              <span className="ui-label text-[color:var(--color-faint)]">Total every month</span>
-              <span className="display tabular text-[30px] leading-none text-[color:var(--color-graphite)] line-through decoration-[color:var(--rule-strong)] decoration-2">
+            <div className="mt-6 flex items-baseline justify-between border-t border-[color:var(--color-border)] pt-4">
+              <span className="ui-label text-[color:var(--color-faint)]">Every month</span>
+              <span className="display tabular text-[34px] leading-none text-[color:var(--color-graphite)] line-through decoration-[color:var(--color-brand-accent)] decoration-[3px]">
                 ${stackTotal}
               </span>
             </div>
@@ -64,37 +63,36 @@ export default function PricingSection() {
         {/* the swap */}
         <Reveal delay={80} className="flex items-center justify-center">
           <span
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-card)] text-accent shadow-[0_8px_18px_-10px_rgba(0,0,0,.4)]"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-accent text-white shadow-[0_14px_28px_-12px_var(--color-brand-glow)]"
             aria-hidden="true"
           >
-            <ArrowRight size={17} className="rotate-90 lg:rotate-0" />
+            <ArrowRight size={18} className="rotate-90 lg:rotate-0" />
           </span>
         </Reveal>
 
+        {/* the one that replaces it */}
         <Reveal delay={140} className="flex">
           <div
-            className="panel reg-marks flex w-full flex-col p-5 sm:p-7"
+            className="panel reg-marks flex w-full flex-col overflow-hidden p-5 sm:p-7"
             style={{
-              borderColor: 'color-mix(in srgb, var(--color-brand-accent) 45%, transparent)',
+              borderColor: 'color-mix(in srgb, var(--color-brand-accent) 50%, transparent)',
               background:
-                'radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--color-brand-accent) 10%, transparent) 0%, transparent 62%), var(--color-card)',
-              boxShadow: '0 30px 70px -50px var(--color-brand-glow)',
+                'radial-gradient(130% 100% at 50% 0%, color-mix(in srgb, var(--color-brand-accent) 13%, transparent) 0%, transparent 64%), var(--color-card)',
+              boxShadow: '0 40px 80px -56px var(--color-brand-glow), 0 2px 6px rgba(16,13,10,.05)',
             }}
           >
-            <div className="mb-5 flex items-center justify-between">
-              <span className="ui-label text-accent">One subscription</span>
+            <div className="mb-6 flex items-center justify-between">
+              <span className="flex items-center gap-2.5">
+                <Mark size={19} className="text-accent" />
+                <span className="display-sm text-[17px] text-foreground">OpenLedger Pro</span>
+              </span>
               <span className="ui-label rounded-full bg-brand-accent px-2.5 py-1 text-[9px] text-white">
                 Best value
               </span>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              <Mark size={20} className="text-accent" />
-              <span className="display-sm text-[19px] text-foreground">OpenLedger Pro</span>
-            </div>
-
-            <div className="mt-3 flex items-baseline gap-2">
-              <span className="display tabular text-[54px] leading-none text-accent">${OUR_PRICE}</span>
+            <div className="flex items-baseline gap-2">
+              <span className="display tabular text-[62px] leading-[0.9] text-accent">${OUR_PRICE}</span>
               <span className="text-[13px] text-[color:var(--color-faint)]">per month</span>
             </div>
 
@@ -107,12 +105,16 @@ export default function PricingSection() {
               </span>
             </div>
 
-            <p className="mt-5 flex-1 text-[14px] leading-[1.6] text-[color:var(--color-graphite)]">
-              Every model, one thread, one memory, and{' '}
-              <span className="font-medium text-foreground">${saving} a month back.</span>
-            </p>
+            <ul className="mt-6 flex-1 space-y-2">
+              {['Every model, one thread', 'One memory across all of them', `$${saving} a month back`].map((line) => (
+                <li key={line} className="flex items-start gap-2.5 text-[14px] text-[color:var(--color-graphite)]">
+                  <Check size={15} className="mt-[3px] shrink-0 text-accent" />
+                  {line}
+                </li>
+              ))}
+            </ul>
 
-            <a href="#" className="btn btn-accent mt-6 w-full">
+            <a href="#" className="btn btn-accent mt-7 w-full">
               Start free
             </a>
           </div>
@@ -121,71 +123,50 @@ export default function PricingSection() {
 
       {/* ---------------------------------------------- token optimisation */}
       <Reveal delay={80}>
-        <div className="panel mt-3.5 p-5 sm:p-7">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            <div>
-              <div className="ui-label mb-2.5 text-accent">Token optimisation</div>
-              <h3 className="display-sm max-w-[26ch] text-[20px] text-foreground sm:text-[23px]">
-                Then it keeps costing less every month after that.
-              </h3>
-              <p className="mt-2 max-w-[52ch] text-[14px] leading-[1.6] text-[color:var(--color-graphite)]">
-                Most requests do not need the most expensive model, and most context does not need sending twice. The
-                router works that out per request, so you are billed for the tokens that did the work.
-              </p>
-            </div>
+        <div className="panel mt-4 grid gap-7 p-5 sm:p-7 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center lg:gap-14">
+          <div>
+            <div className="ui-label mb-3 text-accent">Token optimisation</div>
+            <h3 className="display-sm text-[21px] text-foreground sm:text-[24px]">And it keeps getting cheaper.</h3>
+            <p className="mt-2.5 max-w-[42ch] text-[14px] leading-[1.6] text-[color:var(--color-graphite)]">
+              The router spends what a request needs, not what the biggest model charges.
+            </p>
+          </div>
 
-            <div className="text-right">
-              <div className="display tabular text-[clamp(2rem,3.4vw,2.8rem)] leading-none text-accent">
-                {TOKEN_SAVING.headline}
+          <div>
+            <div className="flex items-end justify-between gap-6">
+              <div className="ui-label text-[color:var(--color-faint)]">Tokens in a typical request</div>
+              <div className="text-right">
+                <span className="display tabular text-[30px] leading-none text-accent">{TOKEN_SAVING.headline}</span>
+                <span className="ui-label ml-2 text-[color:var(--color-faint)]">{TOKEN_SAVING.note}</span>
               </div>
-              <div className="ui-label mt-2 max-w-[22ch] text-[color:var(--color-faint)]">{TOKEN_SAVING.note}</div>
-            </div>
-          </div>
-
-          {/* what happens to a request's tokens */}
-          <div className="mt-7">
-            <div className="ui-label mb-2.5 flex items-center justify-between text-[color:var(--color-faint)]">
-              <span>Tokens in a typical request</span>
-              <span>What you are billed for</span>
             </div>
 
-            <div className="flex h-3.5 w-full gap-[3px] overflow-hidden rounded-full">
-              {TOKEN_SAVING.segments.map((seg) => (
-                <span
-                  key={seg.label}
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${seg.pct}%`, ...SEGMENT_STYLE[seg.tone] }}
-                />
-              ))}
-            </div>
-
-            <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5">
-              {TOKEN_SAVING.segments.map((seg) => (
-                <li key={seg.label} className="flex items-center gap-2 text-[12.5px] text-[color:var(--color-graphite)]">
-                  <span className="h-2 w-2 rounded-full" style={SEGMENT_STYLE[seg.tone]} />
-                  {seg.label}
-                  <span className="tabular font-mono text-[color:var(--color-faint)]">{seg.pct}%</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* the three levers */}
-          <dl className="mt-7 grid gap-x-12 border-t border-[color:var(--color-border)] md:grid-cols-3">
-            {TOKEN_SAVING.levers.map(([term, detail], i) => (
-              <Reveal
-                key={term}
-                row
-                delay={i * 60}
-                className="border-b border-[color:var(--color-border)] py-4 md:border-b-0"
+            <div className="mt-3 flex h-8 w-full gap-1 overflow-hidden rounded-[8px]">
+              <span
+                className="flex h-full items-center justify-center rounded-[6px] text-[11px] font-semibold text-[color:var(--color-graphite)]"
+                style={{ width: `${100 - TOKEN_SAVING.billedPct}%`, background: 'var(--rule-strong)' }}
               >
-                <dt className="text-[14px] font-medium text-foreground">{term}</dt>
-                <dd className="mt-1 max-w-[34ch] text-[13px] leading-[1.55] text-[color:var(--color-graphite)]">
-                  {detail}
-                </dd>
-              </Reveal>
-            ))}
-          </dl>
+                Saved
+              </span>
+              <span
+                className="flex h-full items-center justify-center rounded-[6px] bg-brand-accent text-[11px] font-semibold text-white"
+                style={{ width: `${TOKEN_SAVING.billedPct}%` }}
+              >
+                Billed
+              </span>
+            </div>
+
+            <div className="mt-3.5 flex flex-wrap gap-1.5">
+              {TOKEN_SAVING.levers.map((lever) => (
+                <span
+                  key={lever}
+                  className="rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-tertiary)] px-3 py-1.5 text-[12px] text-[color:var(--color-graphite)]"
+                >
+                  {lever}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </Reveal>
 

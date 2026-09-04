@@ -310,23 +310,15 @@ export const STACKED_PLANS = [
 ];
 
 /* Token optimisation. The levers are real product behaviour; the
-   percentages and the headline figure are PLACEHOLDERS and need
+   headline figure and the billed share are PLACEHOLDERS and need
    measuring against a real workload before this ships. */
 export const TOKEN_SAVING = {
   headline: 'Up to 60%',
-  note: 'fewer tokens billed on a typical workload',
-  segments: [
-    { label: 'Cached', pct: 26, tone: 'faint' },
-    { label: 'Trimmed', pct: 18, tone: 'faint' },
-    { label: 'Routed cheaper', pct: 22, tone: 'mid' },
-    { label: 'Billed', pct: 34, tone: 'accent' },
-  ],
-  levers: [
-    ['Smart routing', 'The cheapest model that can actually do the job'],
-    ['Context caching', 'Repeated context is not sent twice, or billed twice'],
-    ['Prompt trimming', 'Dead weight stripped before it ever leaves'],
-  ],
+  note: 'fewer tokens billed',
+  billedPct: 34,
+  levers: ['Smart routing', 'Context caching', 'Prompt trimming'],
 };
+
 
 /* Placeholder pricing. Replace with the live plan sheet. */
 export const OUR_PRICE = 20;
