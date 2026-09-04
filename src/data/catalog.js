@@ -303,11 +303,30 @@ export function countByKind(kind) {
 /* Publicly listed consumer plan prices for the apps people stack up.
    Verify before launch. */
 export const STACKED_PLANS = [
-  { app: 'ChatGPT Plus', price: 20 },
-  { app: 'Claude Pro', price: 20 },
-  { app: 'Google AI Pro', price: 20 },
-  { app: 'SuperGrok', price: 30 },
+  { app: 'ChatGPT Plus', code: 'OA', price: 20 },
+  { app: 'Claude Pro', code: 'AN', price: 20 },
+  { app: 'Google AI Pro', code: 'GG', price: 20 },
+  { app: 'SuperGrok', code: 'XA', price: 30 },
 ];
+
+/* Token optimisation. The levers are real product behaviour; the
+   percentages and the headline figure are PLACEHOLDERS and need
+   measuring against a real workload before this ships. */
+export const TOKEN_SAVING = {
+  headline: 'Up to 60%',
+  note: 'fewer tokens billed on a typical workload',
+  segments: [
+    { label: 'Cached', pct: 26, tone: 'faint' },
+    { label: 'Trimmed', pct: 18, tone: 'faint' },
+    { label: 'Routed cheaper', pct: 22, tone: 'mid' },
+    { label: 'Billed', pct: 34, tone: 'accent' },
+  ],
+  levers: [
+    ['Smart routing', 'The cheapest model that can actually do the job'],
+    ['Context caching', 'Repeated context is not sent twice, or billed twice'],
+    ['Prompt trimming', 'Dead weight stripped before it ever leaves'],
+  ],
+};
 
 /* Placeholder pricing. Replace with the live plan sheet. */
 export const OUR_PRICE = 20;
