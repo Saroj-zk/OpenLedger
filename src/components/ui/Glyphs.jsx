@@ -131,7 +131,8 @@ export function BrandTile({ code, size = 34, lifted = false, className = '' }) {
         className="pointer-events-none absolute inset-0"
         style={{
           borderRadius: radius,
-          background: 'linear-gradient(180deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 46%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,.34) 0%, rgba(255,255,255,0) 48%)',
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.18)',
         }}
       />
     </span>
@@ -145,44 +146,63 @@ export function BrandTile({ code, size = 34, lifted = false, className = '' }) {
    ===================================================================== */
 
 export const FORMATS = {
-  text: { label: 'Text', base: '#3F4756', top: '#6B7688' },
-  image: { label: 'Images', base: '#7C3AED', top: '#9B6BFF' },
-  audio: { label: 'Audio', base: '#0D9488', top: '#2DD4BF' },
-  video: { label: 'Video', base: '#E11D48', top: '#FB6A87' },
+  text: { label: 'Text', base: '#3F4756', top: '#79879C', deep: '#242A34' },
+  image: { label: 'Images', base: '#7C3AED', top: '#A985FF', deep: '#4C1D95' },
+  audio: { label: 'Audio', base: '#0D9488', top: '#45E0C8', deep: '#0A5F58' },
+  video: { label: 'Video', base: '#E11D48', top: '#FF7D97', deep: '#8E0F2E' },
 };
 
 function FormatGlyph({ kind }) {
-  const s = { fill: 'none', stroke: '#fff', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' };
-
   switch (kind) {
     case 'text':
       return (
         <>
-          <path d="M5.5 7.5h13M5.5 12h13M5.5 16.5h8" {...s} />
+          <rect x="7.4" y="2.9" width="12" height="15.4" rx="2.4" fill="#fff" opacity=".32" />
+          <rect x="4.4" y="5.4" width="12.4" height="15.4" rx="2.4" fill="#fff" />
+          <g fill="currentColor">
+            <rect x="6.9" y="8.9" width="7.4" height="1.5" rx=".75" />
+            <rect x="6.9" y="12" width="5.4" height="1.5" rx=".75" />
+            <rect x="6.9" y="15.1" width="6.6" height="1.5" rx=".75" />
+          </g>
         </>
       );
     case 'image':
       return (
         <>
-          <rect x="4" y="5.5" width="16" height="13" rx="2.4" {...s} />
-          <circle cx="9" cy="10" r="1.5" fill="#fff" stroke="none" />
-          <path d="M4.8 16.6 9.6 12l3.2 3 2.6-2.4 3.8 4" {...s} />
+          <rect x="2.9" y="6.2" width="15.8" height="12.9" rx="2.6" fill="#fff" />
+          <circle cx="7.6" cy="10.5" r="1.6" fill="currentColor" />
+          <path
+            d="M3.6 17.6 8.4 13l3.1 2.9 2.8-2.6 3.2 3v.6a1.5 1.5 0 0 1-1.5 1.5H5.1a1.5 1.5 0 0 1-1.5-1.5z"
+            fill="currentColor"
+          />
+          <path d="m19.4 2.6.85 2.15L22.4 5.6l-2.15.85-.85 2.15-.85-2.15L16.4 5.6l2.15-.85z" fill="#fff" />
         </>
       );
     case 'audio':
       return (
-        <g fill="#fff" stroke="none">
-          <rect x="4.6" y="10.4" width="2.2" height="3.2" rx="1.1" />
-          <rect x="8.4" y="7.6" width="2.2" height="8.8" rx="1.1" />
-          <rect x="12.2" y="5.4" width="2.2" height="13.2" rx="1.1" />
-          <rect x="16" y="9" width="2.2" height="6" rx="1.1" />
-        </g>
+        <>
+          <circle cx="12" cy="12" r="9.1" fill="#fff" opacity=".2" />
+          <circle cx="12" cy="12" r="6.4" fill="#fff" opacity=".14" />
+          <g fill="#fff">
+            <rect x="4.6" y="10.3" width="2.3" height="3.4" rx="1.15" />
+            <rect x="8.3" y="6.4" width="2.3" height="11.2" rx="1.15" />
+            <rect x="12" y="8.6" width="2.3" height="6.8" rx="1.15" />
+            <rect x="15.7" y="5.2" width="2.3" height="13.6" rx="1.15" />
+            <rect x="19.4" y="10.8" width="2.3" height="2.4" rx="1.15" />
+          </g>
+        </>
       );
     case 'video':
       return (
         <>
-          <rect x="3.6" y="5.8" width="16.8" height="12.4" rx="2.6" {...s} />
-          <path d="M10.6 10.2 14.6 12l-4 1.8z" fill="#fff" stroke="none" />
+          <rect x="2.6" y="5.2" width="18.8" height="13.6" rx="3.2" fill="#fff" />
+          <path d="M10.2 9.2 15.8 12l-5.6 2.8z" fill="currentColor" />
+          <g fill="currentColor" opacity=".34">
+            <rect x="4.6" y="7.2" width="1.7" height="1.7" rx=".55" />
+            <rect x="4.6" y="15.1" width="1.7" height="1.7" rx=".55" />
+            <rect x="17.7" y="7.2" width="1.7" height="1.7" rx=".55" />
+            <rect x="17.7" y="15.1" width="1.7" height="1.7" rx=".55" />
+          </g>
         </>
       );
     default:
@@ -190,9 +210,9 @@ function FormatGlyph({ kind }) {
   }
 }
 
-export function FormatTile({ kind, size = 40, className = '' }) {
+export function FormatTile({ kind, size = 48, className = '' }) {
   const f = FORMATS[kind] || FORMATS.text;
-  const radius = Math.round(size * 0.28);
+  const radius = Math.round(size * 0.27);
 
   return (
     <span
@@ -201,8 +221,9 @@ export function FormatTile({ kind, size = 40, className = '' }) {
         width: size,
         height: size,
         borderRadius: radius,
-        background: `linear-gradient(157deg, ${f.top} 0%, ${f.base} 62%, ${f.base} 100%)`,
-        boxShadow: `0 8px 18px -6px ${f.base}66, 0 1px 2px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.45)`,
+        color: f.base,
+        background: `radial-gradient(120% 120% at 28% 12%, ${f.top} 0%, ${f.base} 58%, ${f.deep} 100%)`,
+        boxShadow: `0 14px 26px -10px ${f.base}70, 0 2px 4px rgba(0,0,0,.16), inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -8px 16px rgba(0,0,0,.14)`,
       }}
       aria-hidden="true"
     >
@@ -213,7 +234,8 @@ export function FormatTile({ kind, size = 40, className = '' }) {
         className="pointer-events-none absolute inset-0"
         style={{
           borderRadius: radius,
-          background: 'linear-gradient(180deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 46%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,.34) 0%, rgba(255,255,255,0) 48%)',
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.18)',
         }}
       />
     </span>

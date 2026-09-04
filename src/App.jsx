@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import HeroSection from './components/HeroSection';
 import RoutingStrip from './components/RoutingStrip';
 import LayerSection from './components/LayerSection';
-import FormatsSection from './components/FormatsSection';
+import CapabilitiesSection from './components/CapabilitiesSection';
 import ModelsSection from './components/ModelsSection';
 import CouncilMode from './components/CouncilMode';
 import PrivacySection from './components/PrivacySection';
@@ -12,6 +12,7 @@ import EnterpriseSection from './components/EnterpriseSection';
 import Footer from './components/Footer';
 import ModelsPage from './pages/ModelsPage';
 import TokenPage from './pages/TokenPage';
+import CapabilitiesPage from './pages/CapabilitiesPage';
 import { useRoute } from './router';
 
 function Landing() {
@@ -20,7 +21,7 @@ function Landing() {
       <HeroSection />
       <RoutingStrip />
       <LayerSection />
-      <FormatsSection />
+      <CapabilitiesSection />
       <ModelsSection />
       <CouncilMode />
       <PrivacySection />
@@ -42,6 +43,7 @@ function App() {
 
   if (path === '/models') return <ModelsPage />;
   if (path === '/token') return <TokenPage />;
+  if (path === '/capabilities') return <CapabilitiesPage />;
   return <Landing />;
 }
 
