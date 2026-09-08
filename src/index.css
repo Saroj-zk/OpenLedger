@@ -354,9 +354,83 @@ body {
   100% { transform: translateY(100%) scaleY(1); opacity: 0; }
 }
 
+/* A packet crossing a horizontal connector. */
+@keyframes travel-x {
+  0%   { left: 0; opacity: 0; }
+  18%  { opacity: 1; }
+  82%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* A chat message arriving. */
+@keyframes msg-in {
+  0%   { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* A memory chip being written. */
+@keyframes chip-in {
+  0%   { opacity: 0; transform: scale(.92); }
+  60%  { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: .3; }
+}
+
+/* ---------------------------------------------------- 3D scene motion */
+/* Real perspective motion for the pillar scenes. Each keyframe leaves a
+   sensible still frame at 0%, so the reduced-motion rule above (which
+   collapses duration to nothing) lands on something legible rather than
+   on a half-faded element. */
+
+/* A prompt crossing the layer and dissolving. Nothing is left behind. */
+@keyframes rise-through {
+  0%   { transform: translate(-50%, calc(-50% + 34px)) scale(.9); opacity: 0; }
+  22%  { opacity: 1; }
+  58%  { opacity: 1; }
+  100% { transform: translate(-50%, calc(-50% - 36px)) scale(1.06); opacity: 0; }
+}
+
+/* A ring of tiles turning in perspective, and the counter-turn that
+   keeps each tile facing the viewer. */
+@keyframes ring-y     { to { transform: rotateY(360deg); } }
+@keyframes ring-y-rev { to { transform: rotateY(-360deg); } }
+
+/* A card drifting, for the floating UI pieces. Uses `translate` so it
+   composes with whatever transform is already placing the element. */
+@keyframes float-soft {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -7px; }
+}
+
+/* A slab breathing towards the viewer.
+   Uses the independent `translate` property rather than `transform`:
+   these plates already carry a base transform that centres and tilts
+   them, and animating `transform` would replace it outright, flattening
+   the plane and knocking it off centre. `translate` composes instead. */
+@keyframes slab-bob {
+  0%, 100% { translate: 0 0 0; }
+  50%      { translate: 0 0 11px; }
+}
+
+/* Context feeding upward into a model. Uses the independent `scale`
+   property for the same reason slab-bob uses `translate`: the beam is
+   centred with a transform of its own. */
+@keyframes beam-up {
+  0%   { scale: 1 .15; opacity: 0; }
+  35%  { opacity: .95; }
+  100% { scale: 1 1; opacity: 0; }
+}
+
+/* An agent drawn into the endpoint. */
+@keyframes converge {
+  0%   { transform: translate(-50%,-50%) translate3d(var(--fx), var(--fy), 0) scale(1); opacity: 0; }
+  28%  { opacity: 1; }
+  74%  { opacity: 1; }
+  100% { transform: translate(-50%,-50%) translate3d(0, 0, 30px) scale(.4); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

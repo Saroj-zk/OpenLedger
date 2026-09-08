@@ -5,57 +5,47 @@ import { Section, ProviderTile, Reveal, useInView } from './ui/Ledger';
 /* =====================================================================
    Council Mode
    The flagship feature, so it gets the page's one real product surface.
-   The point of a council is that it disagrees, so the layout groups the
-   models by the side they took: two camps, side by side, then the answer
-   that resolves them. Reading the split should not require reading four
-   paragraphs.
    ===================================================================== */
 
-const QUESTION = 'We ship in two weeks and the auth rewrite is late. Ship or delay?';
+const QUESTION = 'Pick the best sushi restaurant in Tokyo for dinner under $100.';
 
-const CAMPS = [
-  { id: 'delay', label: 'Delay it', accent: false },
-  { id: 'ship', label: 'Ship something smaller', accent: true },
-];
-
-/* Ordered so each camp sits together under its own heading. */
 const LANES = [
   {
     code: 'OA',
-    model: 'o3',
-    stance: 'Delay',
-    camp: 'delay',
+    model: 'GPT',
+    stance: 'Sushi Tokyo Ten',
+    camp: 'other',
     ms: 4100,
-    text: 'Two live auth paths is what causes the incident, not the missed date.',
-  },
-  {
-    code: 'GG',
-    model: 'Gemini 2.5 Pro',
-    stance: 'Cost it',
-    camp: 'delay',
-    ms: 5200,
-    text: 'Put numbers on both. One bad rollback costs more than the week you save.',
+    text: 'Great value for an omakase experience, with a central location and a menu that fits the budget.',
   },
   {
     code: 'AN',
-    model: 'Claude Opus 4',
-    stance: 'Ship',
-    camp: 'ship',
+    model: 'Claude',
+    stance: 'Manten Sushi',
+    camp: 'winner',
     ms: 3300,
-    text: 'Ship behind a flag. The old path keeps serving until the new one is clean.',
+    text: 'A strong pick for quality and value, especially if you want a proper omakase without premium pricing.',
+  },
+  {
+    code: 'GG',
+    model: 'Gemini',
+    stance: 'Sushi No Midori',
+    camp: 'other',
+    ms: 5200,
+    text: 'More casual and affordable, with a wide selection and consistently popular reviews.',
   },
   {
     code: 'DS',
-    model: 'DeepSeek R1',
-    stance: 'Cut scope',
-    camp: 'ship',
+    model: 'DeepSeek',
+    stance: 'Manten Sushi',
+    camp: 'winner',
     ms: 2600,
-    text: 'The date slipped because scope grew. Cut it back to the session store.',
+    text: 'Best overall balance of quality, experience, and price within the $100 budget.',
   },
 ];
 
 const SYNTHESIS =
-  'A flag makes both camps right: launch on the date, cut the rewrite to the session store, and keep the old path serving until the flag is clean.';
+  'The strongest overall pick for an authentic omakase experience under $100, with a good balance of quality, value, and accessibility.';
 
 function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -135,14 +125,14 @@ export default function CouncilMode() {
   const clock = useRunClock(phase >= 1, phase >= 4, 6200);
 
   return (
-    <Section id="council" index="04" label="Council" dark grid>
+    <Section id="council" index="04" label="Consensus" dark grid>
       <div ref={ref}>
         {/* ------------------------------------------------------ header */}
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-16">
           <Reveal>
             <div className="ui-label mb-5 flex items-center gap-2 text-accent">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-accent" />
-              Council Mode
+              Consensus Mode
             </div>
             <h2 className="display text-[clamp(2.6rem,6.4vw,5rem)] text-balance text-foreground">
               Ask four models.
@@ -150,7 +140,7 @@ export default function CouncilMode() {
               Get one answer.
             </h2>
             <p className="mt-6 max-w-[52ch] text-pretty text-[17px] leading-[1.55] text-[color:var(--color-graphite)] sm:text-[19px]">
-              The flagship feature. One question, four models, and the answer that holds up once they disagree.
+              The flagship feature. One question, four models, and the optimal answer synthesized from their consensus.
             </p>
           </Reveal>
 
@@ -178,9 +168,9 @@ export default function CouncilMode() {
                 style={{ animation: phase > 0 && phase < 4 ? 'pulse-dot 1.1s ease-in-out infinite' : 'none' }}
                 aria-hidden="true"
               />
-              <span className="ui-label text-foreground">Council run</span>
+              <span className="ui-label text-foreground">Consensus run</span>
               <span className="ui-label hidden text-[color:var(--color-faint)] sm:inline">
-                4 models &middot; 1 question
+                4 models &middot; 3 picks &middot; 1 answer
               </span>
               <span className="tabular ml-auto font-mono text-[12px] text-[color:var(--color-graphite)]">{clock}s</span>
             </div>
@@ -206,47 +196,10 @@ export default function CouncilMode() {
               />
             </div>
 
-            {/* camp headings: the split, before you read a word of it */}
-            <div className="hidden lg:grid lg:grid-cols-2">
-              {CAMPS.map((camp, i) => {
-                const votes = LANES.filter((l) => l.camp === camp.id).length;
-                return (
-                  <div
-                    key={camp.id}
-                    className={`flex items-center gap-2.5 border-b border-[color:var(--color-border)] px-7 py-3 ${
-                      i === 0 ? 'border-r' : ''
-                    }`}
-                  >
-                    <span
-                      className="inline-block h-1.5 w-1.5 rounded-full transition-colors duration-500"
-                      style={{
-                        background:
-                          phase >= 3
-                            ? camp.accent
-                              ? 'var(--color-brand-accent)'
-                              : 'var(--color-graphite)'
-                            : 'var(--color-border)',
-                      }}
-                      aria-hidden="true"
-                    />
-                    <span
-                      className="ui-label transition-colors duration-500"
-                      style={{ color: phase >= 3 ? (camp.accent ? 'var(--color-accent)' : 'var(--color-foreground)') : 'var(--color-faint)' }}
-                    >
-                      {camp.label}
-                    </span>
-                    <span className="tabular ml-auto font-mono text-[12px] text-[color:var(--color-faint)]">
-                      {votes} of 4
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
             {/* lanes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 pt-4 lg:pt-0">
               {LANES.map((lane, i) => (
-                <Lane key={lane.model} lane={lane} index={i} active={phase >= 3} splitAfter={i === 1} />
+                <Lane key={lane.model} lane={lane} index={i} active={phase >= 3} splitAfter={false} />
               ))}
             </div>
 
@@ -259,8 +212,8 @@ export default function CouncilMode() {
               }}
             >
               <div className="flex items-center justify-between gap-4 px-5 pt-5 sm:px-7">
-                <span className="ui-label text-accent">The answer</span>
-                <span className="ui-label text-[color:var(--color-faint)]">Both camps, resolved</span>
+                <span className="ui-label text-accent">Final Pick: Manten Sushi</span>
+                <span className="ui-label text-[color:var(--color-faint)]">4 Models Compared</span>
               </div>
               <p className="min-h-[3.2em] max-w-[70ch] px-5 pb-6 pt-3 text-[18px] leading-[1.55] text-foreground sm:px-7 sm:pb-7 sm:text-[21px]">
                 {synthesis.shown}
@@ -272,7 +225,7 @@ export default function CouncilMode() {
 
         <Reveal delay={160} className="mt-9 flex flex-wrap items-center gap-3">
           <a href="#" className="btn btn-accent px-7 py-3.5 text-[15px]">
-            Try Council Mode
+            Try Consensus Mode
           </a>
           <button
             onClick={() => {
@@ -295,7 +248,7 @@ export default function CouncilMode() {
 
 function Lane({ lane, index, active, splitAfter }) {
   const { shown, done } = useTypewriter(lane.text, { start: active, speed: 11, delay: index * 180 });
-  const accent = lane.camp === 'ship';
+  const accent = lane.camp === 'winner';
 
   return (
     <article
