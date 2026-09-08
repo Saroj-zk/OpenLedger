@@ -113,6 +113,7 @@ export function Section({
   tint = false,
   grid = false,
   full = false,
+  compact = false,
   className = '',
   children,
 }) {
@@ -133,7 +134,13 @@ export function Section({
       </div>
 
       <div className="relative flex flex-1 items-center">
-        <div className="mx-auto w-full max-w-[1240px] px-5 py-14 sm:px-8 md:py-20">{children}</div>
+        <div
+          className={`mx-auto w-full max-w-[1240px] px-5 sm:px-8 ${
+            compact ? 'py-8 md:py-10' : 'py-14 md:py-20'
+          }`}
+        >
+          {children}
+        </div>
       </div>
 
       {index && (

@@ -119,6 +119,14 @@ export default function ApiSection() {
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand-accent" />
             API
           </div>
+          {/* The lead line: what the section is worth, before the headline
+              says what it is. Set in the accent the way a card's line is,
+              so it reads as part of the eyebrow zone rather than as a
+              second deck competing with the one below the headline. */}
+          <p className="mb-5 max-w-[46ch] text-pretty text-[15.5px] font-medium leading-[1.5] text-accent">
+            Access every model with one subscription, built for seamless use across humans and x402-ready agents.
+          </p>
+
           <h2 className="display text-[clamp(2rem,4.4vw,3.2rem)] text-balance text-foreground">
             One endpoint. Every model behind it.
           </h2>

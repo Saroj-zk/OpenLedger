@@ -1,345 +1,269 @@
-import React, { useEffect, useState } from 'react';
-import { Section, SectionHead, Reveal, ArrowLink, useInView } from './ui/Ledger';
-import { BrandTile, BRAND } from './ui/Glyphs';
+import React from 'react';
+import { Section, SectionHead, Reveal, useInView, Mark, ArrowLink } from './ui/Ledger';
+import { BrandTile } from './ui/Glyphs';
 
 /* =====================================================================
    The four pillars.
-   Each card carries a running scene rather than a screenshot. The scenes
-   step outside the page palette on purpose: they are illustrations of
-   the product, so provider colours, depth and gloss belong here even
-   though the ledger tables stay monochrome. They run only while on
-   screen, and hold a finished frame under reduced motion.
+
+   The visual language: soft floating UI pieces and app icon tiles over a
+   light ground, with dashed orbit rings where something circles a centre.
+   Depth comes from the tiles' own gradients and long soft shadows rather
+   than from heavy perspective, which is what keeps it looking like
+   product rather than like a diagram.
+
+   Motion is CSS, not React state: stepping a drift from a timer is how
+   you get a visible stutter.
+
+   One rule matters more than the rest here. These keyframes animate the
+   independent `translate` / `scale` properties rather than `transform`,
+   so they compose with an element's placement instead of replacing it.
+   The catch is that Tailwind v4's `-translate-x-1/2` compiles to
+   `translate: -50% -50%` and NOT to a transform — so those utilities and
+   these animations fight over the same property, and the animation wins.
+   Anything that floats therefore centres itself with an inline
+   `transform`, never with a translate utility.
+
+   Everything is sized to a budget: the section fits one screen, which
+   leaves about 150px of drawable height per scene.
    ===================================================================== */
 
 function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-/** Steps 0,1,2… through `count` every `ms`, but only while `active`. */
-function useCycle(count, ms, active) {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (!active || prefersReducedMotion()) return;
-    const tick = setInterval(() => setIndex((i) => (i + 1) % count), ms);
-    return () => clearInterval(tick);
-  }, [count, ms, active]);
-
-  return index;
-}
-
-/** A scene stage: knows when it is being looked at, and holds depth. */
-function Scene({ children, tint = 'rgba(120,140,180,0.10)' }) {
+/**
+ * A scene stage. Knows when it is being looked at, and prints the card's
+ * spec line along the bottom the way a plate on equipment does.
+ */
+function Scene({ foot, children }) {
   const [ref, inView] = useInView({ threshold: 0.25 });
+  const [left, right] = foot.split('·').map((s) => s.trim());
+
   return (
     <div
       ref={ref}
-      className="scene relative h-[232px] overflow-hidden rounded-[14px] border border-[color:var(--color-border)]"
+      className="relative h-[168px] overflow-hidden rounded-[12px] border border-[color:var(--color-border)]"
       style={{
-        background: `radial-gradient(120% 90% at 50% 8%, ${tint} 0%, transparent 62%), var(--color-tertiary)`,
+        background:
+          'radial-gradient(100% 78% at 50% 4%, color-mix(in srgb, var(--color-brand-accent) 8%, transparent) 0%, transparent 68%), var(--color-tertiary)',
       }}
     >
-      {children(inView)}
+      <div className="absolute inset-x-0 bottom-[26px] top-0">{children(inView)}</div>
+
+      <div className="absolute inset-x-0 bottom-0 flex h-[26px] items-center justify-between border-t border-[color:var(--color-border)] px-3.5">
+        <span className="ui-label text-[9px] text-[color:var(--color-graphite)]">{left}</span>
+        <span className="ui-label text-[9px] text-[color:var(--color-faint)]">{right}</span>
+      </div>
     </div>
   );
 }
 
-/* ================================================ 01 private scene */
-/* A shield holding, while request cards rise into it and vanish. */
-
-function PrivateScene() {
-  return <Scene tint="rgba(45,212,191,0.16)">{(inView) => <PrivateSceneInner inView={inView} />}</Scene>;
+/* ==================================== 01 confidential inference */
+function ConfidentialScene() {
+  return (
+    <Scene foot="Zero retention · Uncensored">
+      {(inView) => <ConfidentialSceneInner inView={inView} />}
+    </Scene>
+  );
 }
 
-function PrivateSceneInner({ inView }) {
+function ConfidentialSceneInner({ inView }) {
   const running = inView && !prefersReducedMotion();
-  const pulse = useCycle(3, 1600, inView);
 
   return (
-    <div className="relative flex h-full items-center justify-center">
-      {/* state pill, the way an app would show it */}
-      <div className="absolute left-4 top-4 z-20 flex items-center gap-2 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-card)] py-1.5 pl-3 pr-1.5 shadow-[0_6px_16px_-8px_rgba(0,0,0,.35)]">
-        <span className="text-[11px] font-semibold text-foreground">Zero retention</span>
-        <span className="flex h-[18px] w-[30px] items-center rounded-full bg-[#16a34a] px-[2px] shadow-[inset_0_1px_2px_rgba(0,0,0,.25)]">
-          <span className="ml-auto h-[14px] w-[14px] rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,.3)]" />
-        </span>
-      </div>
-
-      {/* prompts rising into the shield and dissolving */}
-      {running &&
-        [0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="pointer-events-none absolute bottom-8 h-8 w-[132px] rounded-[7px] border border-white/50 bg-white/80 shadow-[0_8px_20px_-10px_rgba(0,0,0,.4)] backdrop-blur-sm"
-            style={{ animation: `card-rise 4.8s ease-out ${i * 1.6}s infinite` }}
-            aria-hidden="true"
-          >
-            <span className="absolute left-2.5 top-2.5 h-[4px] w-[58px] rounded-full bg-slate-300" />
-            <span className="absolute left-2.5 top-[18px] h-[4px] w-[86px] rounded-full bg-slate-200" />
-          </span>
-        ))}
-
-      {/* the shield */}
-      <div
-        className="relative z-10"
-        style={{ animation: running ? 'float-y 6s ease-in-out infinite' : 'none' }}
+    <div className="relative w-full h-full flex flex-col items-center justify-center">
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-2xl pointer-events-none"></div>
+      
+      {/* Main Settings Card Mockup */}
+      <div 
+        className="relative z-10 w-[200px] rounded-xl bg-[color:var(--color-card)] border border-[color:var(--color-border)] shadow-[0_8px_24px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.4)] overflow-hidden"
+        style={{ animation: running ? 'float-soft 6s ease-in-out infinite' : 'none' }}
       >
-        <svg width="128" height="146" viewBox="0 0 128 146" fill="none" aria-hidden="true">
-          <defs>
-            <linearGradient id="ol-shield" x1="18" y1="6" x2="112" y2="140" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#7DE2D1" />
-              <stop offset="0.45" stopColor="#3AAFA9" />
-              <stop offset="1" stopColor="#17544F" />
-            </linearGradient>
-            <linearGradient id="ol-shield-gloss" x1="30" y1="10" x2="70" y2="90" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#fff" stopOpacity="0.55" />
-              <stop offset="1" stopColor="#fff" stopOpacity="0" />
-            </linearGradient>
-            <filter id="ol-shield-shadow" x="-40%" y="-20%" width="180%" height="160%">
-              <feDropShadow dx="0" dy="14" stdDeviation="12" floodColor="#0f766e" floodOpacity="0.35" />
-            </filter>
-          </defs>
-
-          <path
-            d="M64 4 118 24v46c0 34-22 58-54 72C32 128 10 104 10 70V24z"
-            fill="url(#ol-shield)"
-            filter="url(#ol-shield-shadow)"
-          />
-          <path d="M64 4 118 24v46c0 34-22 58-54 72z" fill="#000" fillOpacity="0.12" />
-          <path d="M64 12 110 29v40c0 29-19 50-46 62V12z" fill="#fff" fillOpacity="0.06" />
-          <path d="M64 6 112 24c-14 26-42 44-76 48V24z" fill="url(#ol-shield-gloss)" />
-
-          {/* padlock */}
-          <rect x="50" y="66" width="28" height="24" rx="5" fill="#fff" fillOpacity="0.95" />
-          <path d="M56 66v-6a8 8 0 0 1 16 0v6" stroke="#fff" strokeWidth="4" strokeLinecap="round" fill="none" />
-          <circle cx="64" cy="76" r="3.4" fill="#17544F" />
-          <rect x="62.6" y="77" width="2.8" height="6" rx="1.4" fill="#17544F" />
-        </svg>
+        {/* Header */}
+        <div className="px-3 py-2 border-b border-[color:var(--color-border)] flex items-center gap-1.5 bg-[color:var(--color-tertiary)]">
+          <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+          <span className="text-[10px] font-semibold text-foreground">Privacy Controls</span>
+        </div>
+        
+        {/* Toggle Row */}
+        <div className="p-3 flex items-center justify-between bg-[color:var(--color-card)]">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-bold text-foreground">Zero Retention</span>
+            <span className="text-[9px] text-[color:var(--color-graphite)]">Prompts are never stored</span>
+          </div>
+          {/* Active Toggle */}
+          <div className="w-[28px] h-[16px] bg-[#16a34a] rounded-full p-[2px] flex items-center justify-end shadow-inner relative">
+            <div className="w-[12px] h-[12px] bg-white rounded-full shadow-sm absolute right-[2px]"></div>
+          </div>
+        </div>
       </div>
-
-      <div className="absolute inset-x-4 bottom-3.5 z-20 flex items-center justify-between">
-        <span className="ui-label text-[color:var(--color-graphite)]">
-          {['Prompt dropped', 'Nothing logged', 'Nothing trained on'][pulse]}
-        </span>
-        <span className="ui-label tabular text-[color:var(--color-faint)]">0 bytes kept</span>
-      </div>
+      
+      {/* Floating securely encrypted elements to show data disappearing */}
+      {running && (
+        <>
+          <div className="absolute top-[10%] right-[10%] px-2 py-1 bg-[color:var(--color-card)] backdrop-blur-md border border-[color:var(--color-border)] rounded-md shadow-sm flex items-center gap-1.5 opacity-0" style={{ animation: 'rise-through 4s ease-in-out infinite' }}>
+             <svg className="w-2.5 h-2.5 text-[color:var(--color-graphite)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+             <div className="w-6 h-1 bg-[color:var(--color-border)] rounded-full"></div>
+          </div>
+          <div className="absolute bottom-[20%] left-[8%] px-2 py-1 bg-[color:var(--color-card)] backdrop-blur-md border border-[color:var(--color-border)] rounded-md shadow-sm flex items-center gap-1.5 opacity-0" style={{ animation: 'rise-through 4.5s ease-in-out 1.5s infinite' }}>
+             <svg className="w-2.5 h-2.5 text-[color:var(--color-graphite)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+             <div className="w-10 h-1 bg-[color:var(--color-border)] rounded-full"></div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-/* ============================================ 02 multi model scene */
-/* Providers orbit the layer. The one at the centre is answering. */
-
-const ORBIT = [
-  { code: 'OA', name: 'GPT-4o' },
-  { code: 'AN', name: 'Claude Opus 4' },
-  { code: 'GG', name: 'Gemini 2.5 Pro' },
-  { code: 'XA', name: 'Grok 4' },
-  { code: 'DS', name: 'DeepSeek R1' },
-  { code: 'MT', name: 'Llama 3.3' },
-];
-
-function MultiModelScene() {
-  return <Scene tint="rgba(226,130,63,0.14)">{(inView) => <MultiModelSceneInner inView={inView} />}</Scene>;
+/* ====================================== 02 unified model access */
+function AccessScene() {
+  return <Scene foot="Multi-model · Token optimized">{(inView) => <AccessSceneInner inView={inView} />}</Scene>;
 }
 
-function MultiModelSceneInner({ inView }) {
-  const active = useCycle(ORBIT.length, 2200, inView);
-  const spinning = inView && !prefersReducedMotion();
+function AccessSceneInner({ inView }) {
+  const running = inView && !prefersReducedMotion();
 
   return (
-    <div className="relative flex h-full items-center justify-center">
-      <div className="relative h-[178px] w-[178px]">
-        <span
-          className="absolute inset-2 rounded-full border border-dashed border-[color:var(--rule-strong)]"
-          style={{ animation: spinning ? 'ring-glow 4s ease-in-out infinite' : 'none' }}
-          aria-hidden="true"
-        />
-
-        <div className="absolute inset-0" style={{ animation: spinning ? 'orbit-spin 28s linear infinite' : 'none' }}>
-          {ORBIT.map((p, i) => {
-            const angle = (360 / ORBIT.length) * i;
-            return (
-              <span
-                key={p.code}
-                className="absolute left-1/2 top-1/2 -ml-[16px] -mt-[16px]"
-                style={{ transform: `rotate(${angle}deg) translate(78px)` }}
-              >
-                <span className="block" style={{ transform: `rotate(${-angle}deg)` }}>
-                  <span
-                    className="block"
-                    style={{ animation: spinning ? 'orbit-spin-rev 28s linear infinite' : 'none' }}
-                  >
-                    <BrandTile code={p.code} size={32} lifted={i === active} />
-                  </span>
-                </span>
-              </span>
-            );
-          })}
-        </div>
-
-        {/* the layer itself, holding whoever is answering */}
-        <div
-          className="absolute left-1/2 top-1/2 flex h-[78px] w-[78px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full"
-          style={{
-            background: 'radial-gradient(120% 120% at 32% 22%, #ffffff 0%, #efe9e3 55%, #d9d0c6 100%)',
-            boxShadow:
-              '0 16px 32px -14px rgba(0,0,0,.45), 0 2px 4px rgba(0,0,0,.1), inset 0 2px 3px rgba(255,255,255,.9), inset 0 -6px 12px rgba(0,0,0,.06)',
-          }}
+    <div className="relative flex flex-col items-center justify-center w-full h-full gap-3">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-2xl pointer-events-none"></div>
+      
+      {/* Central Hub UI */}
+      <div className="relative z-10 flex flex-col gap-3 items-center mt-2">
+        {/* Fake dropdown selector */}
+        <div 
+          className="w-[180px] h-[36px] bg-[color:var(--color-card)] border border-[color:var(--color-border)] rounded-[10px] shadow-[0_6px_16px_rgba(0,0,0,0.06)] dark:shadow-xl flex items-center px-3 gap-2.5"
+          style={{ animation: running ? 'float-soft 7s ease-in-out infinite' : 'none' }}
         >
-          <BrandTile code={ORBIT[active].code} size={40} lifted />
+          <div className="w-5 h-5 rounded-full bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center border border-purple-100 dark:border-purple-500/20">
+            <Mark size={10} className="text-purple-600 dark:text-purple-400" />
+          </div>
+          <span className="text-[11px] font-semibold text-foreground flex-1">Select Model...</span>
+          <svg className="w-3 h-3 text-[color:var(--color-graphite)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
         </div>
-      </div>
 
-      <div className="absolute inset-x-4 bottom-3.5 flex items-center justify-between">
-        <span className="ui-label truncate text-[color:var(--color-graphite)]">{ORBIT[active].name}</span>
-        <span className="ui-label tabular text-[color:var(--color-faint)]">thread kept &middot; {14 + active}</span>
+        {/* The models docked in a sleek bar */}
+        <div 
+          className="px-3 py-2 bg-[color:var(--color-card)]/90 backdrop-blur-xl border border-[color:var(--color-border)] rounded-[12px] shadow-[0_6px_20px_rgba(0,0,0,0.05)] flex items-center justify-center gap-2.5"
+          style={{ animation: running ? 'float-soft 6s ease-in-out 0.5s infinite' : 'none' }}
+        >
+           <BrandTile code="OA" size={20} />
+           <BrandTile code="AN" size={20} />
+           <BrandTile code="GG" size={20} />
+           <BrandTile code="MT" size={20} />
+           <div className="w-5 h-5 rounded-full bg-[color:var(--color-tertiary)] border border-[color:var(--color-border)] flex items-center justify-center">
+             <span className="text-[7.5px] font-bold text-[color:var(--color-graphite)]">+8</span>
+           </div>
+        </div>
       </div>
     </div>
   );
 }
 
-/* ========================================= 03 unified memory scene */
-/* A deck of memory cards, tilted in space, feeding whichever model is
-   answering. The beam fires each time the model changes. */
-
-const MEMORY = ['Writes in British English', 'Ships on Thursdays', 'brand-book.pdf', 'Prefers tables to prose'];
-const MEM_TARGETS = [{ code: 'AN' }, { code: 'OA' }, { code: 'GG' }];
-
+/* ========================================== 03 unified memory */
 function MemoryScene() {
-  return <Scene tint="rgba(124,58,237,0.14)">{(inView) => <MemorySceneInner inView={inView} />}</Scene>;
+  return <Scene foot="One memory · Shared context">{(inView) => <MemorySceneInner inView={inView} />}</Scene>;
 }
 
 function MemorySceneInner({ inView }) {
-  const active = useCycle(MEM_TARGETS.length, 2400, inView);
-  const reading = useCycle(MEMORY.length, 600, inView);
   const running = inView && !prefersReducedMotion();
 
   return (
-    <div className="relative flex h-full flex-col items-center justify-center pb-9 pt-4">
-      {/* the deck */}
-      <div className="scene-3d relative h-[104px] w-[214px]" style={{ transform: 'rotateX(16deg)' }}>
-        {MEMORY.map((fact, i) => {
-          const on = running && i === reading;
-          return (
-            <span
-              key={fact}
-              className="absolute left-1/2 flex h-[30px] w-[206px] -translate-x-1/2 items-center rounded-[8px] px-3 text-[11.5px] transition-all duration-300"
-              style={{
-                top: i * 24,
-                zIndex: 10 - i,
-                background: on ? 'linear-gradient(180deg,#ffffff,#f6f1ff)' : 'linear-gradient(180deg,#ffffff,#f4f2f0)',
-                border: `1px solid ${on ? 'rgba(124,58,237,.45)' : 'rgba(16,13,10,.10)'}`,
-                boxShadow: on
-                  ? '0 12px 24px -12px rgba(124,58,237,.55), inset 0 1px 0 #fff'
-                  : '0 6px 14px -10px rgba(0,0,0,.4), inset 0 1px 0 #fff',
-                color: on ? '#4c1d95' : '#6b6660',
-                transform: on ? 'translate(-50%, -3px)' : 'translate(-50%, 0)',
-              }}
-            >
-              {fact}
-            </span>
-          );
-        })}
+    <div className="relative w-full h-full flex flex-col items-center justify-center gap-4 pt-1">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-orange-500/10 dark:bg-orange-500/20 rounded-full blur-2xl pointer-events-none"></div>
+
+      {/* Memory Context Block */}
+      <div 
+        className="relative z-10 px-4 py-2.5 bg-[color:var(--color-card)] border border-[color:var(--color-border)] rounded-xl shadow-[0_8px_20px_rgba(0,0,0,0.06)] flex items-center gap-2.5"
+        style={{ animation: running ? 'float-soft 5s ease-in-out infinite' : 'none' }}
+      >
+        <div className="w-6 h-6 rounded-[8px] bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 flex items-center justify-center">
+          <svg className="w-3 h-3 text-orange-500 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-bold text-foreground leading-none">Shared Context</span>
+          <div className="w-20 h-1 bg-[color:var(--color-tertiary)] rounded-full overflow-hidden">
+             <div className="w-full h-full bg-orange-400 dark:bg-orange-500/80 rounded-full animate-[pulse_3s_ease-in-out_infinite]"></div>
+          </div>
+        </div>
       </div>
 
-      {/* beam into the active model */}
-      <div className="relative mt-3 h-6 w-full" aria-hidden="true">
-        <span className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[color:var(--color-border)]" />
-        {running && (
-          <span
-            key={active}
-            className="absolute left-1/2 top-0 h-full w-[2px] -translate-x-1/2 rounded-full bg-gradient-to-b from-[#a78bfa] to-transparent"
-            style={{ animation: 'beam-down .8s ease-out' }}
-          />
-        )}
+      {/* SVG Connection Tracks */}
+      <div className="absolute top-[48%] left-1/2 -translate-x-1/2 w-[140px] h-[26px] z-0 pointer-events-none">
+        <svg width="100%" height="100%" viewBox="0 0 140 26" fill="none">
+           <path d="M 70 0 V 10 M 70 10 H 10 V 26 M 70 10 H 70 V 26 M 70 10 H 130 V 26" stroke="currentColor" className="text-[color:var(--color-border)]" strokeWidth="1.5" strokeLinejoin="round" strokeDasharray="3 3"/>
+           {running && (
+             <>
+               <circle cx="10" cy="26" r="2" className="fill-orange-400 shadow-glow animate-[ping_2s_infinite]" />
+               <circle cx="70" cy="26" r="2" className="fill-orange-400 shadow-glow animate-[ping_2s_infinite_0.3s]" />
+               <circle cx="130" cy="26" r="2" className="fill-orange-400 shadow-glow animate-[ping_2s_infinite_0.6s]" />
+             </>
+           )}
+        </svg>
       </div>
 
-      <div className="flex items-center gap-5">
-        {MEM_TARGETS.map((t, i) => (
-          <span key={t.code} style={{ opacity: i === active ? 1 : 0.45, transition: 'opacity .5s' }}>
-            <BrandTile code={t.code} size={34} lifted={i === active} />
-          </span>
-        ))}
-      </div>
-
-      <div className="absolute inset-x-4 bottom-3.5 flex items-center justify-between">
-        <span className="ui-label text-[color:var(--color-graphite)]">One memory, {MEM_TARGETS.length} models</span>
-        <span className="ui-label tabular text-[color:var(--color-faint)]">nothing re-explained</span>
+      {/* Models row receiving the context */}
+      <div className="relative z-10 flex gap-9 mt-1">
+        <div className="bg-[color:var(--color-card)] p-1 rounded-lg shadow-sm border border-[color:var(--color-border)]"><BrandTile code="OA" size={22} /></div>
+        <div className="bg-[color:var(--color-card)] p-1 rounded-lg shadow-sm border border-[color:var(--color-border)]"><BrandTile code="AN" size={22} /></div>
+        <div className="bg-[color:var(--color-card)] p-1 rounded-lg shadow-sm border border-[color:var(--color-border)]"><BrandTile code="GG" size={22} /></div>
       </div>
     </div>
   );
 }
 
-/* ================================================= 04 agents scene */
-/* auto resolves to a different target each pass, and the wire lights. */
-
-const TARGETS = [
-  { code: 'OA', label: 'o3', note: 'reasoning' },
-  { code: 'AN', label: 'Sonnet 4', note: 'code' },
-  { code: 'TL', label: 'tools', note: 'search, files' },
-];
-
+/* ==================================== 04 agent infrastructure */
 function AgentScene() {
-  return <Scene tint="rgba(8,102,255,0.12)">{(inView) => <AgentSceneInner inView={inView} />}</Scene>;
+  return <Scene foot="x402 enabled · Agent ready">{(inView) => <AgentSceneInner inView={inView} />}</Scene>;
 }
 
 function AgentSceneInner({ inView }) {
-  const active = useCycle(TARGETS.length, 2000, inView);
   const running = inView && !prefersReducedMotion();
 
   return (
-    <div className="relative flex h-full flex-col items-center justify-center pb-9">
-      {/* the call */}
-      <div
-        className="relative z-10 rounded-[10px] px-3.5 py-2.5 font-mono text-[11.5px]"
-        style={{
-          background: 'linear-gradient(180deg,#ffffff,#f3f4f6)',
-          border: '1px solid rgba(16,13,10,.12)',
-          boxShadow: '0 14px 28px -16px rgba(0,0,0,.5), inset 0 1px 0 #fff',
-          transform: 'perspective(700px) rotateX(9deg)',
-        }}
-      >
-        <span className="font-semibold text-[#0866FF]">POST</span>
-        <span className="text-[#111827]"> /v1/chat </span>
-        <span className="text-[#9a948c]">{'{ model: "auto" }'}</span>
-      </div>
+    <div className="relative w-full h-full flex items-center justify-center">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-full blur-2xl pointer-events-none"></div>
 
-      {/* wiring */}
-      <div className="relative mt-4 w-[240px] pt-5" aria-hidden="true">
-        <span className="absolute left-1/2 top-0 h-5 w-px -translate-x-1/2 bg-[color:var(--rule-strong)]" />
-        <span className="absolute left-[16.6%] right-[16.6%] top-5 h-px bg-[color:var(--rule-strong)]" />
-
-        <div className="grid grid-cols-3 gap-3">
-          {TARGETS.map((t, i) => {
-            const on = i === active;
-            return (
-              <div key={t.label} className="relative flex flex-col items-center pt-5">
-                <span
-                  className="absolute left-1/2 top-0 h-5 w-[2px] -translate-x-1/2 rounded-full transition-all duration-500"
-                  style={{
-                    background: on ? BRAND[t.code].base : 'var(--rule-strong)',
-                    boxShadow: on ? `0 0 8px ${BRAND[t.code].base}` : 'none',
-                  }}
-                />
-                <BrandTile code={t.code} size={30} lifted={on} />
-                <span
-                  className="ui-label mt-2 text-[9px] transition-colors duration-500"
-                  style={{ color: on ? 'var(--color-foreground)' : 'var(--color-faint)' }}
-                >
-                  {t.label}
-                </span>
-              </div>
-            );
-          })}
+      <div className="relative z-10 flex items-center gap-8 w-full max-w-[240px] mx-auto">
+        
+        {/* Agents Stack */}
+        <div className="flex flex-col gap-2.5 relative z-10 w-24">
+          {['Research', 'Support', 'Ops'].map((agent, i) => (
+             <div 
+               key={agent}
+               className="px-2.5 py-1.5 bg-[color:var(--color-card)] border border-[color:var(--color-border)] rounded-[8px] shadow-sm flex items-center gap-1.5 relative group"
+               style={{ animation: running ? `float-soft 4s ease-in-out ${i * 0.4}s infinite` : 'none' }}
+             >
+               <div className="w-[5px] h-[5px] bg-emerald-500 rounded-full shadow-[0_0_5px_#10b981]"></div>
+               <span className="text-[9px] font-semibold text-foreground">{agent} Agent</span>
+               
+               {/* Small connecting horizontal line from each block */}
+               <div className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-5 h-[1.5px] bg-emerald-500/30"></div>
+             </div>
+          ))}
+          {/* Vertical connecting spine */}
+          <div className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-[1.5px] h-[60px] bg-emerald-500/30"></div>
+          {/* Main trunk to API */}
+          <div className="absolute right-[-40px] top-1/2 -translate-y-1/2 w-[20px] h-[1.5px] bg-emerald-500/30"></div>
+          
+          {running && (
+             <div className="absolute right-[-26px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_6px_#34d399] animate-[ping_2s_infinite]"></div>
+          )}
         </div>
-      </div>
 
-      <div className="absolute inset-x-4 bottom-3.5 flex items-center justify-between">
-        <span className="ui-label text-[color:var(--color-graphite)]">
-          Routed to <span style={{ color: running ? BRAND[TARGETS[active].code].base : undefined }}>{TARGETS[active].label}</span>
-        </span>
-        <span className="ui-label tabular text-[color:var(--color-faint)]">{TARGETS[active].note}</span>
+        {/* The Universal API Endpoint */}
+        <div 
+           className="px-4 py-3 bg-[#0a0a0c] border border-gray-800 rounded-[12px] shadow-[0_8px_24px_rgba(0,0,0,0.15)] flex flex-col gap-1 relative overflow-hidden"
+           style={{ animation: running ? 'float-soft 6s ease-in-out infinite' : 'none' }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent pointer-events-none"></div>
+          <span className="text-[8px] font-mono text-gray-400 uppercase tracking-widest relative z-10">Endpoint</span>
+          <div className="flex items-center gap-1.5 relative z-10">
+            <span className="text-emerald-400 font-bold text-[10px]">POST</span>
+            <span className="text-white font-mono text-xs tracking-tight">/v1/chat</span>
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -349,37 +273,32 @@ function AgentSceneInner({ inView }) {
 
 const CARDS = [
   {
-    heading: 'Private & Unfiltered',
-    line: 'Private by default. Uncensored by design.',
-    body: 'Your prompts leave without your name attached and are gone the moment they are answered. No logs, no profile, and no filter of our own placed over the model you chose.',
-    link: 'How privacy works',
-    href: '#privacy',
+    heading: 'Private AI',
+    line: 'Private and uncensored, from the start.',
+    body: 'Ask freely without your prompts being stored or used for training.',
+    href: '/private',
     span: 'lg:col-span-7',
-    visual: <PrivateScene />,
+    visual: <ConfidentialScene />,
   },
   {
-    heading: 'Multi-Model Access',
-    line: 'Every frontier model, one conversation.',
-    body: 'Change model in the middle of a sentence and the thread stays exactly where it was. One account, one subscription, nothing to copy between apps.',
-    link: 'See every model',
-    href: '/models',
+    heading: 'Multi-Model & Token Optimization',
+    line: 'More models. Fewer wasted tokens.',
+    body: 'Access leading AI models from one place, with optimized token usage to reduce costs and keep every request efficient.',
     span: 'lg:col-span-5',
-    visual: <MultiModelScene />,
+    visual: <AccessScene />,
   },
   {
     heading: 'Unified Memory',
-    line: 'One memory. Every model.',
-    body: 'Your files, preferences and past chats live in your account rather than inside one company’s app, so whichever model answers already knows them. Export the lot whenever you want.',
-    link: null,
+    line: 'Say it once. Every model knows.',
+    body: 'Your context stays consistent across models, so you never have to start over.',
+    href: '/memory',
     span: 'lg:col-span-5',
     visual: <MemoryScene />,
   },
   {
     heading: 'Built for Agents',
-    line: 'One endpoint your agents can call.',
-    body: 'Your agents get the same routing, memory and privacy behind a single API. Pin a model, or send auto and let the router choose the right one for each request.',
-    link: 'Read the API',
-    href: '#api',
+    line: 'Connect once. Access any model.',
+    body: 'Give agents direct access to leading AI models with x402, enabling seamless interactions across models without complex integrations.',
     span: 'lg:col-span-7',
     visual: <AgentScene />,
   },
@@ -387,34 +306,35 @@ const CARDS = [
 
 export default function LayerSection() {
   return (
-    <Section id="layer" index="01" label="The layer">
+    <Section id="layer" index="01" label="The layer" compact>
       <SectionHead
         eyebrow="Why OpenLedger"
-        title="Intelligence, on your terms."
-        deck="Not another model. A private, uncensored layer in front of the ones you already use."
-        meta={[
-          { label: 'Providers', value: '7' },
-          { label: 'Prompts stored', value: '0' },
-        ]}
+        title="Private by default. Uncensored by design."
+        deck="Private access to leading AI models, shared memory, and agents without the usual switching or setup."
       />
 
-      <div className="mt-14 grid grid-cols-1 gap-3.5 lg:grid-cols-12">
+      <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-12">
         {CARDS.map((card, i) => (
           <Reveal key={card.heading} delay={i * 70} className={`${card.span} flex`}>
-            <article className="panel reg-marks flex w-full flex-col p-5 transition-colors duration-300 hover:border-[color:var(--rule-strong)] sm:p-7">
-              <h3 className="display-sm text-[24px] text-foreground sm:text-[27px]">{card.heading}</h3>
-              <p className="mt-2 text-[16px] font-medium text-accent">{card.line}</p>
-              <p className="mt-3 max-w-[48ch] text-[15px] leading-[1.6] text-[color:var(--color-graphite)]">
+            <article className="panel reg-marks flex w-full flex-col p-4 transition-colors duration-300 hover:border-[color:var(--rule-strong)] sm:p-5">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="display-sm text-[18px] text-foreground sm:text-[19px]">{card.heading}</h3>
+                {card.href && (
+                  <ArrowLink href={card.href} className="mt-[5px] shrink-0">
+                    Explore
+                  </ArrowLink>
+                )}
+              </div>
+              <p className="mt-1.5 text-[13.5px] font-medium text-accent">{card.line}</p>
+              {/* Two lines are reserved whether or not the copy needs them.
+                  The narrow cards wrap where the wide ones do not, and
+                  letting that vary drops one scene below its neighbour. No
+                  max-width, for the same reason. */}
+              <p className="mt-1.5 min-h-[39px] text-[12.5px] leading-[1.55] text-[color:var(--color-graphite)]">
                 {card.body}
               </p>
 
-              <div className="mt-6">{card.visual}</div>
-
-              {card.link && (
-                <div className="mt-6 flex items-center justify-end border-t border-[color:var(--color-border)] pt-4">
-                  <ArrowLink href={card.href}>{card.link}</ArrowLink>
-                </div>
-              )}
+              <div className="mt-2.5">{card.visual}</div>
             </article>
           </Reveal>
         ))}

@@ -8,9 +8,9 @@ export default function HeroSection() {
   const suggestions = [
     { icon: <Pencil size={14} />, text: "Write content" },
     { icon: <Lightbulb size={14} />, text: "Brainstorm ideas" },
+    { icon: <Sparkles size={14} className="text-brand-accent" />, text: "Join testnet", highlight: true },
     { icon: <Code size={14} />, text: "Write code" },
     { icon: <Search size={14} />, text: "Research a topic" },
-    { icon: <Sparkles size={14} />, text: "Surprise me" },
   ];
 
   // Opacity for the hero content (Logo, Heading, Chips)
@@ -47,7 +47,7 @@ export default function HeroSection() {
             style={{ fontFamily: 'var(--font-serif)' }}
             className="text-4xl md:text-[56px] text-gray-800 dark:text-gray-100 font-medium mb-10 drop-shadow-lg tracking-tight"
           >
-            Ask anything
+            Think Freely...
           </h1>
         </div>
 
@@ -68,10 +68,10 @@ export default function HeroSection() {
           {suggestions.map((item, idx) => (
             <button
               key={idx}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--chip-bg)] backdrop-blur-md shadow-sm border border-border text-sm font-medium hover:bg-white/90 dark:hover:bg-white/20 transition-colors"
+              className={`flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--chip-bg)] backdrop-blur-md shadow-sm border ${item.highlight ? 'border-brand-accent/40 bg-brand-accent/5 dark:bg-brand-accent/10' : 'border-border'} text-sm font-medium hover:bg-white/90 dark:hover:bg-white/20 transition-colors`}
             >
-              <span className="text-gray-500 dark:text-gray-400">{item.icon}</span>
-              <span className="text-gray-700 dark:text-gray-200">{item.text}</span>
+              <span className={item.highlight ? "text-brand-accent" : "text-gray-500 dark:text-gray-400"}>{item.icon}</span>
+              <span className={item.highlight ? "text-brand-accent font-semibold" : "text-gray-700 dark:text-gray-200"}>{item.text}</span>
             </button>
           ))}
         </div>
