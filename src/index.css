@@ -368,6 +368,17 @@ body {
   100% { opacity: 1; transform: translateY(0); }
 }
 
+/* Marching ants along a dotted connector. The professional idiom for
+   "data is moving through this link" — a single dot sliding down a wire
+   reads as a loading spinner instead. Offsets are one dash period, so
+   the loop is seamless. */
+@keyframes ants-fwd {
+  to { stroke-dashoffset: -9; }
+}
+@keyframes ants-rev {
+  to { stroke-dashoffset: 9; }
+}
+
 /* A status note arriving: lands, blinks twice, settles. Small enough to
    miss on a first pass otherwise. */
 @keyframes note-flash {
