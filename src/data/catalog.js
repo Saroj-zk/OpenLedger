@@ -14,6 +14,9 @@ export const PROVIDERS = [
   { code: 'DS', name: 'DeepSeek' },
   { code: 'MT', name: 'Meta' },
   { code: 'MS', name: 'Mistral' },
+  { code: 'MO', name: 'Moonshot AI' },
+  { code: 'ZP', name: 'Zhipu AI' },
+  { code: 'NV', name: 'NVIDIA' },
   { code: 'BF', name: 'Black Forest Labs' },
   { code: 'SA', name: 'Stability AI' },
 ];
@@ -191,6 +194,36 @@ export const MODELS = [
     detail: '128K',
     bestFor: 'Fast structured generation',
     description: 'Reliable at JSON, tool calls and anything that has to match a schema exactly, first time.',
+  },
+  {
+    name: 'Kimi K2',
+    provider: 'Moonshot AI',
+    code: 'MO',
+    kind: 'text',
+    detail: '256K',
+    bestFor: 'Long context, open weights',
+    description:
+      'An open weight mixture of experts model with a very large window. Strong on long documents and on agent loops that call tools repeatedly.',
+  },
+  {
+    name: 'GLM-4.6',
+    provider: 'Zhipu AI',
+    code: 'ZP',
+    kind: 'text',
+    detail: '200K',
+    bestFor: 'Open weight coding',
+    description:
+      'Open weights with unusually good tool calling and code generation for its size, at a fraction of closed model pricing.',
+  },
+  {
+    name: 'Llama Nemotron',
+    provider: 'NVIDIA',
+    code: 'NV',
+    kind: 'text',
+    detail: '128K',
+    bestFor: 'Tuned open reasoning',
+    description:
+      'NVIDIA’s tuned Llama variant, trained for stronger reasoning and instruction following while staying open weight.',
   },
   {
     name: 'Mistral Small',
