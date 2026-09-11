@@ -17,8 +17,9 @@ import AgentFlow, { FLOW } from './AgentFlow';
    which means a run loops cleanly, scrubs, and can be re-timed by moving
    one number rather than by unpicking a chain of timeouts.
 
-   Two scripts share the rig — one for multi-model and token optimisation,
-   one for unified memory — and the switcher in the controls swaps them.
+   Four runs share the rig — multi-model and token optimisation, unified
+   memory, a trip planned by refinement, and an architecture diagram that
+   is not a chat at all — and the switcher in the controls swaps them.
 
    The model picker sits in the composer and opens upward, which is where
    Claude, Perplexity and Cursor put it. A picker in the header belongs to
@@ -157,6 +158,96 @@ const MEMORY = {
   },
 };
 
+/* ----------------------------------------------------- C · plan a trip */
+
+/* Three turns, no model switch. The argument here is not the catalog, it
+   is that you can keep talking: each answer comes back as a structured
+   card, and each follow-up rewrites that card rather than starting a new
+   conversation. Nothing is dropped between turns — the budget survives
+   the neighbourhood change, and the itinerary at the end carries both. */
+const TRIP = {
+  id: 'trip',
+  label: 'Trip',
+  start: 'auto',
+  endLine: 'Plan it your way.',
+  endSpec: ['Ask', 'Refine', 'Keep going'],
+  total: 18200,
+  turns: [
+    {
+      type: [300, 2900],
+      send: 3000,
+      think: [3000, 3500],
+      card: [3500, 4600],
+      q: 'I’m visiting Japan for 7 days in October. Build me a trip around food, nightlife, and local experiences.',
+      a: { variant: 'route', title: 'Your 7-day Japan route', items: ['Tokyo', 'Kyoto', 'Osaka'] },
+    },
+    {
+      type: [5600, 6800],
+      send: 6900,
+      think: [6900, 7350],
+      card: [7350, 8500],
+      q: 'Keep the whole trip under $2,000.',
+      a: {
+        variant: 'budget',
+        title: 'Budget optimized',
+        check: true,
+        items: [
+          ['Stay', '$620'],
+          ['Travel', '$280'],
+          ['Food', '$420'],
+          ['Activities', '$240'],
+        ],
+      },
+    },
+    {
+      type: [9400, 11000],
+      send: 11100,
+      think: [11100, 11550],
+      card: [11550, 12700],
+      q: 'Skip tourist-heavy places. What would you change?',
+      a: {
+        variant: 'chips',
+        title: 'Updated',
+        items: ['Koenji', 'Kichijoji', 'Nakazakicho', 'Fushimi after-hours'],
+      },
+    },
+  ],
+  T: {
+    final: [13500, 14300],
+    endCard: 15400,
+  },
+  final: ['7 days', '$1,780 est.', 'Itinerary ready'],
+};
+
+function tripDerive(t) {
+  const s = {
+    draft: '',
+    typing: false,
+    messages: [],
+    model: 'auto',
+    menuOpen: false,
+    thinking: false,
+    cursor: null,
+    click: false,
+    endCard: false,
+    menuScroll: 0,
+  };
+
+  for (const turn of TRIP.turns) {
+    if (t >= turn.type[0] && t < turn.send) {
+      s.typing = true;
+      s.draft = turn.q.slice(0, Math.round(span(turn.type, t) * turn.q.length));
+    }
+    if (t >= turn.send) s.messages.push({ role: 'user', text: turn.q });
+    if (t >= turn.think[0] && t < turn.think[1]) s.thinking = true;
+    if (t >= turn.card[0]) s.messages.push({ role: 'card', ...turn.a, p: span(turn.card, t) });
+  }
+
+  if (t >= TRIP.T.final[0]) s.messages.push({ role: 'final', items: TRIP.final });
+  if (t >= TRIP.T.endCard) s.endCard = true;
+  return s;
+}
+
 /**
  * The entire UI state at time `t`, for one script. Nothing else in this
  * file holds animation state, which is what keeps the loop seamless.
@@ -252,6 +343,7 @@ const AGENTS = {
 const SCRIPTS = {
   token: { ...TOKEN, kind: 'chat', derive: makeDerive(TOKEN) },
   memory: { ...MEMORY, kind: 'chat', derive: makeDerive(MEMORY) },
+  trip: { ...TRIP, kind: 'chat', derive: tripDerive },
   agents: AGENTS,
 };
 
@@ -294,6 +386,94 @@ function Rich({ text }) {
     ) : (
       <React.Fragment key={i}>{part}</React.Fragment>
     ),
+  );
+}
+
+/**
+ * A structured answer.
+ *
+ * The trip run does not reply in prose — an itinerary is a thing with
+ * parts, and a card shows the parts. Items land one after another as the
+ * answer builds, so the card assembles rather than appearing whole;
+ * `p` is the build progress for the beat.
+ */
+function TripCard({ variant, title, check, items, p = 1, narrow = false }) {
+  /* One item per ~70% of the beat, the rest spent on the last one. */
+  const shown = (i) => p * items.length * 1.4 > i + 0.6;
+  const rise = { animation: 'chip-in .3s ease-out both' };
+
+  return (
+    <div className="rounded-[13px] border border-[color:var(--color-border)] bg-[color:var(--color-card)] px-4 py-3">
+      <span className="flex items-center gap-2">
+        <span className="text-[13.5px] font-semibold text-foreground">{title}</span>
+        {check && p > 0.85 && (
+          <span
+            className="flex items-center text-accent"
+            style={{ animation: 'note-flash 1.5s ease-out both' }}
+          >
+            <Check size={13} strokeWidth={2.6} />
+          </span>
+        )}
+      </span>
+
+      {variant === 'route' && (
+        <span className="mt-3 flex max-w-[430px] items-center">
+          {items.map((city, i) => (
+            <React.Fragment key={city}>
+              {i > 0 && (
+                <span
+                  className="mx-2.5 h-px flex-1 transition-opacity duration-300"
+                  style={{ background: 'var(--color-border)', opacity: shown(i) ? 1 : 0 }}
+                />
+              )}
+              {shown(i) && (
+                <span className="flex shrink-0 items-center gap-2" style={rise}>
+                  <span
+                    className="grid h-[22px] w-[22px] place-items-center rounded-full text-[10px] font-semibold"
+                    style={{
+                      background: 'color-mix(in srgb, var(--color-brand-accent) 14%, transparent)',
+                      color: 'var(--color-accent)',
+                    }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span className="text-[13.5px] font-medium text-foreground">{city}</span>
+                </span>
+              )}
+            </React.Fragment>
+          ))}
+        </span>
+      )}
+
+      {variant === 'budget' && (
+        <span className={`mt-3 grid gap-2 ${narrow ? 'grid-cols-2' : 'grid-cols-4'}`}>
+          {items.map(([label, value], i) => (
+            <span
+              key={label}
+              className="rounded-[9px] border border-[color:var(--color-border)] bg-[color:var(--color-tertiary)] px-2.5 py-2"
+              style={shown(i) ? rise : { opacity: 0 }}
+            >
+              <span className="ui-label block text-[8.5px] text-[color:var(--color-faint)]">{label}</span>
+              <span className="mt-1 block text-[14.5px] font-semibold text-foreground">{value}</span>
+            </span>
+          ))}
+        </span>
+      )}
+
+      {variant === 'chips' && (
+        <span className="mt-3 flex flex-wrap gap-1.5">
+          {items.map((it, i) => (
+            <span
+              key={it}
+              className="rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-tertiary)] px-2.5 py-1 text-[12px] text-[color:var(--color-graphite)]"
+              style={shown(i) ? rise : { opacity: 0 }}
+            >
+              {it}
+            </span>
+          ))}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -444,8 +624,16 @@ export default function ChatStudio() {
             ) : (
               <>
               <div className="panel flex w-full max-w-[720px] flex-col overflow-visible">
-                {/* thread */}
-                <div className="flex min-h-[300px] flex-col justify-end gap-5 px-6 py-6">
+                {/* thread — a three-turn run outgrows the stage, so the
+                    history clips at the top the way a real one scrolls */}
+                <div
+                  className="relative flex min-h-[300px] flex-col justify-end gap-5 overflow-hidden px-6 py-6"
+                  style={{ maxHeight: Math.max(300, h - 220) }}
+                >
+                  <span
+                    className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6"
+                    style={{ background: 'linear-gradient(180deg, var(--color-card), transparent)' }}
+                  />
                   {s.messages.map((m, i) =>
                     m.role === 'recall' ? (
                       <div
@@ -477,6 +665,38 @@ export default function ChatStudio() {
                             Relevant context retrieved
                           </span>
                         )}
+                      </div>
+                    ) : m.role === 'card' ? (
+                      <div key={i} className="flex gap-3" style={{ animation: 'msg-in .4s ease-out both' }}>
+                        <span className="mt-[2px] shrink-0">
+                          <AutoAvatar size={26} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <TripCard {...m} narrow={w < 620} />
+                        </span>
+                      </div>
+                    ) : m.role === 'final' ? (
+                      <div
+                        key={i}
+                        className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 rounded-[13px] border px-4 py-3"
+                        style={{
+                          animation: 'note-flash 1.7s ease-out both',
+                          borderColor: 'color-mix(in srgb, var(--color-brand-accent) 45%, transparent)',
+                          background: 'color-mix(in srgb, var(--color-brand-accent) 8%, transparent)',
+                        }}
+                      >
+                        {m.items.map((it, j) => (
+                          <React.Fragment key={it}>
+                            {j > 0 && <span className="text-[7px] text-[color:var(--color-faint)]">&#9670;</span>}
+                            <span
+                              className="ui-label flex items-center gap-1.5 text-[11px]"
+                              style={{ color: j === m.items.length - 1 ? 'var(--color-accent)' : 'var(--color-foreground)' }}
+                            >
+                              {it}
+                              {j === m.items.length - 1 && <Check size={12} strokeWidth={2.6} />}
+                            </span>
+                          </React.Fragment>
+                        ))}
                       </div>
                     ) : m.role === 'user' ? (
                       <div key={i} className="flex justify-end" style={{ animation: 'msg-in .4s ease-out both' }}>
@@ -727,9 +947,12 @@ export default function ChatStudio() {
             >
               <p className="text-[17px] font-medium text-foreground">{SC.endLine}</p>
               <span className="ui-label flex items-center gap-2.5 text-[color:var(--color-graphite)]">
-                {SC.endSpec[0]}
-                <span className="text-[8px] text-[color:var(--color-faint)]">&#9670;</span>
-                {SC.endSpec[1]}
+                {SC.endSpec.map((spec, i) => (
+                  <React.Fragment key={spec}>
+                    {i > 0 && <span className="text-[8px] text-[color:var(--color-faint)]">&#9670;</span>}
+                    {spec}
+                  </React.Fragment>
+                ))}
               </span>
             </div>
           </div>
