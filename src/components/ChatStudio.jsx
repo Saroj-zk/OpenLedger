@@ -1,5 +1,17 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Paperclip, ArrowUp, ChevronDown, Check, RotateCcw, Play, Pause, Search, Star } from 'lucide-react';
+import {
+  Paperclip,
+  ArrowUp,
+  ArrowRight,
+  ChevronDown,
+  Check,
+  RotateCcw,
+  Play,
+  Pause,
+  Search,
+  Star,
+  TrendingUp,
+} from 'lucide-react';
 import { BrandTile } from './ui/Glyphs';
 import { MODELS as CATALOG, MODEL_TOTAL, KINDS } from '../data/catalog';
 import AgentFlow, { FLOW } from './AgentFlow';
@@ -17,9 +29,10 @@ import AgentFlow, { FLOW } from './AgentFlow';
    which means a run loops cleanly, scrubs, and can be re-timed by moving
    one number rather than by unpicking a chain of timeouts.
 
-   Four runs share the rig — multi-model and token optimisation, unified
-   memory, a trip planned by refinement, and an architecture diagram that
-   is not a chat at all — and the switcher in the controls swaps them.
+   Five runs share the rig — multi-model and token optimisation, unified
+   memory, a trip planned by refinement, a trading agent that buys the
+   data it needs, and an architecture diagram that is not a chat at all
+   — and the switcher in the controls swaps them.
 
    The model picker sits in the composer and opens upward, which is where
    Claude, Perplexity and Cursor put it. A picker in the header belongs to
@@ -167,7 +180,7 @@ const MEMORY = {
    the neighbourhood change, and the itinerary at the end carries both. */
 const TRIP = {
   id: 'trip',
-  label: 'Trip',
+  label: 'Chat',
   start: 'auto',
   endLine: 'Plan it your way.',
   endSpec: ['Ask', 'Refine', 'Keep going'],
@@ -245,6 +258,84 @@ function tripDerive(t) {
 
   if (t >= TRIP.T.final[0]) s.messages.push({ role: 'final', items: TRIP.final });
   if (t >= TRIP.T.endCard) s.endCard = true;
+  return s;
+}
+
+/* ------------------------------------------------ D · the trading agent */
+
+/* A dedicated agent rather than a general assistant, so this run opens
+   with the agent's own header and answers in a run log instead of prose.
+   The beat that matters is in the middle of that log: the agent runs out
+   of its own data, reaches a second agent for the premium feed, and pays
+   for it over x402 without a checkout, a key or a human. Everything
+   before that is setup and everything after it is the result. */
+const TRADE = {
+  id: 'trade',
+  label: 'Trading',
+  start: 'auto',
+  agent: { name: 'Trading Agent', tag: 'Research · Analyze · Act' },
+  endLine: 'Agents that pay their own way.',
+  endSpec: ['Research', 'Analyze', 'Act'],
+  total: 14400,
+  q: 'Check ETH right now and find a good entry.',
+  setup: {
+    variant: 'budget',
+    title: 'ETH setup found',
+    check: true,
+    items: [
+      ['Entry', '$4,280'],
+      ['Target', '$4,450'],
+      ['Stop', '$4,190'],
+    ],
+  },
+  action: { title: 'Trade ready', cta: 'Review & Execute' },
+  T: {
+    type: [900, 2500],
+    send: 2600,
+    think: [2600, 3100],
+    /* `at` is when the row lands, `done` when it resolves to a tick. The
+       rows overlap on purpose — a run log where each line waits for the
+       last reads as a queue, not as work. */
+    log: [
+      { kind: 'step', at: 3100, done: 4400, label: 'Analyzing price action' },
+      { kind: 'step', at: 4100, done: 5600, label: 'Checking market data' },
+      { kind: 'handoff', at: 5500, done: 6700, from: 'Trading Agent', label: 'Market Data Agent' },
+      { kind: 'x402', at: 6700, done: 7600, label: 'Access authorized' },
+    ],
+    card: [8000, 9200],
+    action: 9900,
+    endCard: 11900,
+  },
+};
+
+function tradeDerive(t) {
+  const T = TRADE.T;
+  const s = {
+    draft: '',
+    typing: false,
+    messages: [],
+    model: 'auto',
+    menuOpen: false,
+    thinking: false,
+    cursor: null,
+    click: false,
+    endCard: false,
+    menuScroll: 0,
+  };
+
+  if (t >= T.type[0] && t < T.send) {
+    s.typing = true;
+    s.draft = TRADE.q.slice(0, Math.round(span(T.type, t) * TRADE.q.length));
+  }
+  if (t >= T.send) s.messages.push({ role: 'user', text: TRADE.q });
+  if (t >= T.think[0] && t < T.think[1]) s.thinking = true;
+
+  const rows = T.log.filter((r) => t >= r.at).map((r) => ({ ...r, done: t >= r.done }));
+  if (rows.length) s.messages.push({ role: 'log', rows });
+
+  if (t >= T.card[0]) s.messages.push({ role: 'card', ...TRADE.setup, p: span(T.card, t) });
+  if (t >= T.action) s.messages.push({ role: 'action', ...TRADE.action });
+  if (t >= T.endCard) s.endCard = true;
   return s;
 }
 
@@ -344,6 +435,7 @@ const SCRIPTS = {
   token: { ...TOKEN, kind: 'chat', derive: makeDerive(TOKEN) },
   memory: { ...MEMORY, kind: 'chat', derive: makeDerive(MEMORY) },
   trip: { ...TRIP, kind: 'chat', derive: tripDerive },
+  trade: { ...TRADE, kind: 'chat', derive: tradeDerive },
   agents: AGENTS,
 };
 
@@ -446,7 +538,12 @@ function TripCard({ variant, title, check, items, p = 1, narrow = false }) {
       )}
 
       {variant === 'budget' && (
-        <span className={`mt-3 grid gap-2 ${narrow ? 'grid-cols-2' : 'grid-cols-4'}`}>
+        <span
+          className="mt-3 grid gap-2"
+          style={{
+            gridTemplateColumns: `repeat(${narrow ? 2 : Math.min(items.length, 4)}, minmax(0, 1fr))`,
+          }}
+        >
           {items.map(([label, value], i) => (
             <span
               key={label}
@@ -474,6 +571,77 @@ function TripCard({ variant, title, check, items, p = 1, narrow = false }) {
         </span>
       )}
     </div>
+  );
+}
+
+/** A step in an agent's run log: spinning while it works, ticked when done. */
+function Tick({ done }) {
+  return done ? (
+    <span
+      className="grid h-[16px] w-[16px] shrink-0 place-items-center rounded-full"
+      style={{ background: 'color-mix(in srgb, var(--color-brand-accent) 16%, transparent)' }}
+    >
+      <Check size={10} strokeWidth={3} className="text-accent" />
+    </span>
+  ) : (
+    <span className="h-[16px] w-[16px] shrink-0 animate-spin rounded-full border-[1.5px] border-[color:var(--color-border)] border-t-[color:var(--color-brand-accent)]" />
+  );
+}
+
+/**
+ * What an agent did, while it is doing it.
+ *
+ * Three kinds of line, because the middle of this run is not more work of
+ * the same sort: reaching a second agent and paying it are the point, so
+ * they are drawn as a handoff and a settlement rather than as two more
+ * grey steps.
+ */
+function LogRow({ kind, label, from, done }) {
+  const chip =
+    'rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-tertiary)] px-2.5 py-[3px] text-[12px] text-foreground';
+
+  return (
+    <span className="flex items-center gap-2.5" style={{ animation: 'msg-in .3s ease-out both' }}>
+      <Tick done={done} />
+
+      {kind === 'handoff' ? (
+        <span className="flex min-w-0 items-center gap-2">
+          <span className={chip}>{from}</span>
+          <ArrowRight size={13} className="shrink-0 text-[color:var(--color-faint)]" />
+          <span
+            className="truncate rounded-full border px-2.5 py-[3px] text-[12px] font-medium"
+            style={{
+              borderColor: 'color-mix(in srgb, var(--color-brand-accent) 45%, transparent)',
+              background: 'color-mix(in srgb, var(--color-brand-accent) 9%, transparent)',
+              color: 'var(--color-accent)',
+            }}
+          >
+            {label}
+          </span>
+        </span>
+      ) : kind === 'x402' ? (
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            className="rounded-full px-2 py-[3px] font-mono text-[11px] font-semibold"
+            style={{
+              background: 'color-mix(in srgb, var(--color-brand-accent) 15%, transparent)',
+              color: 'var(--color-accent)',
+            }}
+          >
+            x402
+          </span>
+          <span className="truncate text-[12.5px] text-[color:var(--color-graphite)]">{label}</span>
+        </span>
+      ) : (
+        <span
+          className="truncate text-[12.5px]"
+          style={{ color: done ? 'var(--color-graphite)' : 'var(--color-faint)' }}
+        >
+          {label}
+          {!done && '…'}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -624,11 +792,37 @@ export default function ChatStudio() {
             ) : (
               <>
               <div className="panel flex w-full max-w-[720px] flex-col overflow-visible">
+                {/* a dedicated agent announces itself; a general assistant
+                    does not, so only the scripts that name one get a header */}
+                {SC.agent && (
+                  <div className="flex items-center gap-2.5 border-b border-[color:var(--color-border)] px-6 py-3.5">
+                    <span
+                      className="grid h-[32px] w-[32px] shrink-0 place-items-center rounded-[10px]"
+                      style={{ background: 'color-mix(in srgb, var(--color-brand-accent) 13%, transparent)' }}
+                    >
+                      <TrendingUp size={16} className="text-accent" />
+                    </span>
+                    <span className="flex min-w-0 flex-col">
+                      <span className="ui-label text-[11px] text-foreground">{SC.agent.name}</span>
+                      <span className="truncate text-[11.5px] text-[color:var(--color-faint)]">
+                        {SC.agent.tag}
+                      </span>
+                    </span>
+                    <span className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-[color:var(--color-border)] px-2.5 py-1">
+                      <span
+                        className="h-[5px] w-[5px] rounded-full"
+                        style={{ background: 'var(--color-brand-accent)' }}
+                      />
+                      <span className="ui-label text-[8.5px] text-[color:var(--color-graphite)]">Live</span>
+                    </span>
+                  </div>
+                )}
+
                 {/* thread — a three-turn run outgrows the stage, so the
                     history clips at the top the way a real one scrolls */}
                 <div
                   className="relative flex min-h-[300px] flex-col justify-end gap-5 overflow-hidden px-6 py-6"
-                  style={{ maxHeight: Math.max(300, h - 220) }}
+                  style={{ maxHeight: Math.max(280, h - 220 - (SC.agent ? 64 : 0)) }}
                 >
                   <span
                     className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6"
@@ -665,6 +859,40 @@ export default function ChatStudio() {
                             Relevant context retrieved
                           </span>
                         )}
+                      </div>
+                    ) : m.role === 'log' ? (
+                      <div key={i} className="flex gap-3" style={{ animation: 'msg-in .4s ease-out both' }}>
+                        <span className="mt-[2px] shrink-0">
+                          <AutoAvatar size={26} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-col gap-2.5 rounded-[13px] border border-[color:var(--color-border)] bg-[color:var(--color-card)] px-4 py-3">
+                            {m.rows.map((r) => (
+                              <LogRow key={r.label} {...r} />
+                            ))}
+                          </span>
+                        </span>
+                      </div>
+                    ) : m.role === 'action' ? (
+                      <div
+                        key={i}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-[13px] border px-4 py-3"
+                        style={{
+                          animation: 'note-flash 1.7s ease-out both',
+                          borderColor: 'color-mix(in srgb, var(--color-brand-accent) 45%, transparent)',
+                          background: 'color-mix(in srgb, var(--color-brand-accent) 8%, transparent)',
+                        }}
+                      >
+                        <span className="flex items-center gap-1.5 text-[14px] font-semibold text-foreground">
+                          {m.title}
+                          <Check size={14} strokeWidth={2.8} className="text-accent" />
+                        </span>
+                        <span
+                          className="rounded-full px-3.5 py-1.5 text-[12.5px] font-medium text-white"
+                          style={{ background: 'var(--color-brand-accent)' }}
+                        >
+                          {m.cta}
+                        </span>
                       </div>
                     ) : m.role === 'card' ? (
                       <div key={i} className="flex gap-3" style={{ animation: 'msg-in .4s ease-out both' }}>
