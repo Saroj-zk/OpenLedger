@@ -438,8 +438,8 @@ const BUILDER = {
   label: 'Build',
   kind: 'terminal',
   total: BUILD.total,
-  endLine: 'Build it with one API.',
-  endSpec: ['Read', 'Write', 'Verify'],
+  endLine: 'From one sentence to a working app.',
+  endSpec: ['Prompt', 'Build', 'Ship'],
   derive: (t) => ({
     draft: '',
     typing: false,
