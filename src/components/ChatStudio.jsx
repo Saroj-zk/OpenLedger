@@ -15,6 +15,7 @@ import {
 import { BrandTile } from './ui/Glyphs';
 import { MODELS as CATALOG, MODEL_TOTAL, KINDS } from '../data/catalog';
 import AgentFlow, { FLOW } from './AgentFlow';
+import BuildFlow, { BUILD } from './BuildFlow';
 
 /* =====================================================================
    /chat — the recording stage.
@@ -29,10 +30,9 @@ import AgentFlow, { FLOW } from './AgentFlow';
    which means a run loops cleanly, scrubs, and can be re-timed by moving
    one number rather than by unpicking a chain of timeouts.
 
-   Five runs share the rig — multi-model and token optimisation, unified
-   memory, a trip planned by refinement, a trading agent that buys the
-   data it needs, and an architecture diagram that is not a chat at all
-   — and the switcher in the controls swaps them.
+   Six runs share the rig, and three of them are not chats: an
+   architecture diagram, an agent terminal writing an application, and
+   the three conversations. The switcher in the controls swaps them.
 
    The model picker sits in the composer and opens upward, which is where
    Claude, Perplexity and Cursor put it. A picker in the header belongs to
@@ -431,11 +431,35 @@ const AGENTS = {
   }),
 };
 
+/* Also not a chat: an agent writing code in its own dark terminal. Like
+   the diagram, it only needs a total and an end line to sit on the rig. */
+const BUILDER = {
+  id: 'build',
+  label: 'Build',
+  kind: 'terminal',
+  total: BUILD.total,
+  endLine: 'Build it with one API.',
+  endSpec: ['Read', 'Write', 'Verify'],
+  derive: (t) => ({
+    draft: '',
+    typing: false,
+    messages: [],
+    model: 'auto',
+    menuOpen: false,
+    thinking: false,
+    cursor: null,
+    click: false,
+    endCard: t >= BUILD.endCard,
+    menuScroll: 0,
+  }),
+};
+
 const SCRIPTS = {
   token: { ...TOKEN, kind: 'chat', derive: makeDerive(TOKEN) },
   memory: { ...MEMORY, kind: 'chat', derive: makeDerive(MEMORY) },
   trip: { ...TRIP, kind: 'chat', derive: tripDerive },
   trade: { ...TRADE, kind: 'chat', derive: tradeDerive },
+  build: BUILDER,
   agents: AGENTS,
 };
 
@@ -789,6 +813,8 @@ export default function ChatStudio() {
             {/* the window */}
             {SC.kind === 'diagram' ? (
               <AgentFlow t={t} w={w} h={h} />
+            ) : SC.kind === 'terminal' ? (
+              <BuildFlow t={t} w={w} h={h} />
             ) : (
               <>
               <div className="panel flex w-full max-w-[720px] flex-col overflow-visible">
