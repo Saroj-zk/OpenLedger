@@ -28,21 +28,83 @@ const H = 520;
 const BAR = 40;
 const FOOT = 46;
 
-/* The terminal's own palette. Deliberately not the design tokens: this
-   window is dark whichever theme the page is in. */
-const C = {
-  shell: '#0B0C0E',
-  bar: '#141619',
-  line: 'rgba(255,255,255,.09)',
-  text: '#C9D1D9',
-  dim: '#7D8590',
-  faint: '#565D66',
-  accent: '#E2823F',
-  add: '#3FB950',
-  del: '#F85149',
-  addBg: 'rgba(63,185,80,.12)',
-  delBg: 'rgba(248,81,73,.11)',
+/* The terminal has two looks of its own, and neither follows the page:
+   a shot recorded on the light site may still want a dark editor, and
+   the other way round. The switch is in the rig's controls, which the
+   H key hides, so it never lands in the take. */
+const PALETTES = {
+  dark: {
+    shell: '#0B0C0E',
+    bar: '#141619',
+    line: 'rgba(255,255,255,.09)',
+    wash: 'rgba(255,255,255,.015)',
+    chip: 'rgba(255,255,255,.04)',
+    foot: 'rgba(255,255,255,.02)',
+    track: 'rgba(255,255,255,.1)',
+    shadow: '0 40px 80px -36px rgba(0,0,0,.7)',
+    text: '#C9D1D9',
+    dim: '#7D8590',
+    faint: '#565D66',
+    accent: '#E2823F',
+    add: '#3FB950',
+    del: '#F85149',
+    addBg: 'rgba(63,185,80,.12)',
+    delBg: 'rgba(248,81,73,.11)',
+    tone: {
+      tag: '#7EE787',
+      attr: '#79C0FF',
+      comment: '#565D66',
+      string: '#A5D6FF',
+      keyword: '#FF7B72',
+      literal: '#79C0FF',
+      number: '#79C0FF',
+      type: '#7EE787',
+      fn: '#D2A8FF',
+      word: '#C9D1D9',
+      text: '#C9D1D9',
+      space: '#C9D1D9',
+      punct: '#7D8590',
+    },
+  },
+  light: {
+    shell: '#FFFFFF',
+    bar: '#F6F8FA',
+    line: 'rgba(16,13,10,.13)',
+    wash: 'rgba(16,13,10,.018)',
+    chip: 'rgba(16,13,10,.045)',
+    foot: 'rgba(16,13,10,.02)',
+    track: 'rgba(16,13,10,.12)',
+    shadow: '0 34px 70px -34px rgba(16,13,10,.34)',
+    text: '#1F2328',
+    dim: '#59636E',
+    faint: '#8C959F',
+    accent: '#C4671F',
+    add: '#1A7F37',
+    del: '#CF222E',
+    addBg: 'rgba(26,127,55,.10)',
+    delBg: 'rgba(207,34,46,.09)',
+    tone: {
+      tag: '#116329',
+      attr: '#0550AE',
+      comment: '#6E7781',
+      string: '#0A3069',
+      keyword: '#CF222E',
+      literal: '#0550AE',
+      number: '#0550AE',
+      type: '#116329',
+      fn: '#8250DF',
+      word: '#1F2328',
+      text: '#1F2328',
+      space: '#1F2328',
+      punct: '#59636E',
+    },
+  },
 };
+
+/* Every piece of this window reads its colours from here rather than
+   from a prop threaded through five components. */
+const Skin = React.createContext(PALETTES.dark);
+const useSkin = () => React.useContext(Skin);
 
 const MONO = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace";
 
@@ -168,22 +230,6 @@ const RULES = [
   ['punct', /^[\s\S]/],
 ];
 
-const TONE = {
-  text: C.text,
-  tag: '#7EE787',
-  attr: '#79C0FF',
-  comment: C.faint,
-  string: '#A5D6FF',
-  keyword: '#FF7B72',
-  literal: '#79C0FF',
-  number: '#79C0FF',
-  type: '#7EE787',
-  fn: '#D2A8FF',
-  word: C.text,
-  space: C.text,
-  punct: C.dim,
-};
-
 /* Highlighting is pure, and the same twenty lines are re-rendered on
    every frame of the run, so the result is worth keeping. */
 const cache = new Map();
@@ -242,14 +288,16 @@ function tokens(src) {
 }
 
 function Code({ src }) {
+  const { tone } = useSkin();
   return tokens(src).map(([kind, text], i) => (
-    <span key={i} style={{ color: TONE[kind] }}>
+    <span key={i} style={{ color: tone[kind] }}>
       {text}
     </span>
   ));
 }
 
 function Caret() {
+  const C = useSkin();
   return (
     <span
       className="ml-[1px] inline-block h-[0.95em] w-[6px] translate-y-[2px]"
@@ -262,6 +310,7 @@ function Caret() {
 
 /** A file the agent is writing, gutter and all. */
 function FileBlock({ title, path, lines, shown }) {
+  const C = useSkin();
   const visible = lines.slice(0, shown);
 
   return (
@@ -271,12 +320,12 @@ function FileBlock({ title, path, lines, shown }) {
         <span className="font-semibold" style={{ color: C.text }}>
           {title}
         </span>
-        <span style={{ color: '#7EE787' }}>{path}</span>
+        <span style={{ color: C.tone.tag }}>{path}</span>
       </div>
 
       <div
         className="overflow-hidden rounded-[7px]"
-        style={{ border: `1px solid ${C.line}`, background: 'rgba(255,255,255,.015)' }}
+        style={{ border: `1px solid ${C.line}`, background: C.wash }}
       >
         {visible.map((l, i) => (
           <div
@@ -312,10 +361,11 @@ function FileBlock({ title, path, lines, shown }) {
 
 /** One tool the agent reached for, and what it got back. */
 function Tool({ name, arg, meta }) {
+  const C = useSkin();
   return (
     <div className="flex items-center gap-2" style={{ animation: 'msg-in .25s ease-out both' }}>
       <span style={{ color: C.faint }}>▸</span>
-      <span style={{ color: '#79C0FF' }}>{name}</span>
+      <span style={{ color: C.tone.attr }}>{name}</span>
       <span style={{ color: C.text }}>{arg}</span>
       <span style={{ color: C.faint }}>{meta}</span>
     </div>
@@ -324,7 +374,8 @@ function Tool({ name, arg, meta }) {
 
 /* ---------------------------------------------------------------- run */
 
-export default function BuildFlow({ t, w, h }) {
+export default function BuildFlow({ t, w, h, theme = 'dark' }) {
+  const C = PALETTES[theme] ?? PALETTES.dark;
   const scale = Math.min(1.3, (w - 56) / W, (h - 104) / H);
 
   const open = ease(span(BUILD.open, t));
@@ -341,8 +392,9 @@ export default function BuildFlow({ t, w, h }) {
   const ctx = lerp(3.1, 18.4, clamp(t / BUILD.doneAt));
 
   return (
-    <div className="relative flex h-full flex-col items-center justify-center">
-      <div style={{ width: W * scale, height: H * scale }}>
+    <Skin.Provider value={C}>
+      <div className="relative flex h-full flex-col items-center justify-center">
+        <div style={{ width: W * scale, height: H * scale }}>
         <div
           className="flex flex-col overflow-hidden rounded-[13px]"
           style={{
@@ -352,7 +404,7 @@ export default function BuildFlow({ t, w, h }) {
             transformOrigin: 'top left',
             background: C.shell,
             border: `1px solid ${C.line}`,
-            boxShadow: '0 40px 80px -36px rgba(0,0,0,.7)',
+            boxShadow: C.shadow,
             opacity: open,
             fontFamily: MONO,
             fontSize: 13,
@@ -374,7 +426,7 @@ export default function BuildFlow({ t, w, h }) {
             </span>
 
             <span className="ml-auto flex items-center gap-2.5">
-              <span className="h-[7px] w-[64px] overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,.1)' }}>
+              <span className="h-[7px] w-[64px] overflow-hidden rounded-full" style={{ background: C.track }}>
                 <span
                   className="block h-full rounded-full"
                   style={{ width: `${ctx * 4}%`, background: C.dim }}
@@ -391,7 +443,7 @@ export default function BuildFlow({ t, w, h }) {
             {sent && (
               <div
                 className="flex items-start gap-2.5 rounded-[7px] px-3 py-2"
-                style={{ background: 'rgba(255,255,255,.04)', animation: 'msg-in .3s ease-out both' }}
+                style={{ background: C.chip, animation: 'msg-in .3s ease-out both' }}
               >
                 <span style={{ color: C.accent }}>›</span>
                 <span style={{ color: C.text }}>{PROMPT}</span>
@@ -452,7 +504,7 @@ export default function BuildFlow({ t, w, h }) {
           {/* ---------------------------------------------------- the prompt */}
           <div
             className="flex shrink-0 items-center gap-2.5 px-4"
-            style={{ height: FOOT, borderTop: `1px solid ${C.line}`, background: 'rgba(255,255,255,.02)' }}
+            style={{ height: FOOT, borderTop: `1px solid ${C.line}`, background: C.foot }}
           >
             <span style={{ color: C.accent }}>›</span>
             <span className="min-w-0 flex-1 truncate" style={{ color: typing ? C.text : C.faint }}>
@@ -465,6 +517,7 @@ export default function BuildFlow({ t, w, h }) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </Skin.Provider>
   );
 }

@@ -699,6 +699,9 @@ export default function ChatStudio() {
   const [script, setScript] = useState('token');
   const [aspect, setAspect] = useState('16:9');
   const [speed, setSpeed] = useState(1);
+  /* The terminal's own light or dark, independent of the page. Only the
+     Build run has a window to apply it to. */
+  const [term, setTerm] = useState('dark');
   const [playing, setPlaying] = useState(true);
   const [bare, setBare] = useState(false);
   const [t, setT] = useState(0);
@@ -814,7 +817,7 @@ export default function ChatStudio() {
             {SC.kind === 'diagram' ? (
               <AgentFlow t={t} w={w} h={h} />
             ) : SC.kind === 'terminal' ? (
-              <BuildFlow t={t} w={w} h={h} />
+              <BuildFlow t={t} w={w} h={h} theme={term} />
             ) : (
               <>
               <div className="panel flex w-full max-w-[720px] flex-col overflow-visible">
@@ -1300,6 +1303,24 @@ export default function ChatStudio() {
               </button>
             ))}
           </span>
+
+          {SC.kind === 'terminal' && (
+            <span className="flex overflow-hidden rounded-full border border-[color:var(--color-border)]">
+              {['dark', 'light'].map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setTerm(mode)}
+                  className="ui-label px-3 py-2 transition-colors"
+                  style={{
+                    background: term === mode ? 'var(--color-tertiary)' : 'transparent',
+                    color: term === mode ? 'var(--color-foreground)' : 'var(--color-faint)',
+                  }}
+                >
+                  {mode}
+                </button>
+              ))}
+            </span>
+          )}
 
           <span className="ui-label ml-1 text-[color:var(--color-faint)]">
             {STAGES[aspect].w}&times;{STAGES[aspect].h}
