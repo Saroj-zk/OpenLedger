@@ -8,8 +8,8 @@ import React from 'react';
    theme entirely, a monospace transcript, tool calls with their results,
    and an application taking shape across two files.
 
-   What is on screen is an app being built from a sentence — a board
-   component and the page that mounts it — not an integration with
+   What is on screen is an app being built from a sentence — a wallet
+   panel and the page that mounts it — not an integration with
    anything. The agent is the product here; OpenLedger is the line in
    the footer that says which model is answering.
 
@@ -48,46 +48,47 @@ const MONO = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberat
 
 /* --------------------------------------------------------------- code */
 
-const NEW_FILE = `import { useState } from 'react';
-import type { Task, Status } from '../types';
-import { Column } from './Column';
+const NEW_FILE = `import { useAccount, useBalance } from 'wagmi';
+import { formatUnits } from 'viem';
+import { ConnectButton } from './ConnectButton';
+import { TokenRow } from './TokenRow';
+import { TOKENS } from '../lib/tokens';
 
-const COLUMNS: Status[] = ['todo', 'doing', 'done'];
-
-export function Board({ initial }: { initial: Task[] }) {
-  const [tasks, setTasks] = useState(initial);
-  const inColumn = (s: Status) => tasks.filter((t) => t.status === s);
-
-  const move = (id: string, to: Status) =>
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: to } : t)));
+export function Portfolio() {
+  const { address, isConnected } = useAccount();
+  const { data: eth } = useBalance({ address });
+  if (!isConnected) return <ConnectButton />;
 
   return (
-    <div className="grid grid-cols-3 gap-4">
-      {COLUMNS.map((status) => (
-        <Column key={status} status={status} tasks={inColumn(status)} onDrop={move} />
+    <section className="rounded-2xl border border-white/10 p-6">
+      <p className="text-sm text-slate-400">Total balance</p>
+      <h2 className="text-3xl font-semibold">{formatUnits(eth?.value ?? 0n, 18)} ETH</h2>
+      {TOKENS.map((t) => (
+        <TokenRow key={t.address} token={t} owner={address} />
       ))}
-    </div>
+    </section>
   );
 }`;
 
 /* A patch, written the way a diff reads: a mark per line, and removed
    lines holding their number instead of advancing it. */
 const PATCH = [
-  [' ', "import { useTasks } from './hooks/useTasks';"],
-  ['+', "import { Board } from './components/Board';"],
-  [' ', "import { Spinner } from './components/Spinner';"],
+  [' ', "import { WagmiProvider } from 'wagmi';"],
+  [' ', "import { QueryClientProvider } from '@tanstack/react-query';"],
+  ['+', "import { Portfolio } from './components/Portfolio';"],
+  [' ', "import { config, queryClient } from './lib/wagmi';"],
   [' ', ''],
   [' ', 'export default function App() {'],
-  [' ', '  const tasks = useTasks();'],
-  ['-', '  return <TaskList tasks={tasks} />;'],
-  ['+', '  if (!tasks) return <Spinner />;'],
-  ['+', ''],
+  ['-', '  return <div className="p-12">Connect a wallet to begin.</div>;'],
   ['+', '  return ('],
-  ['+', '    <main className="mx-auto max-w-5xl px-6 py-10">'],
-  ['+', '      <h1 className="text-2xl font-semibold">Sprint board</h1>'],
-  ['+', '      <p className="mb-6 text-sm text-slate-500">Drag a card to move it.</p>'],
-  ['+', '      <Board initial={tasks} />'],
-  ['+', '    </main>'],
+  ['+', '    <WagmiProvider config={config}>'],
+  ['+', '      <QueryClientProvider client={queryClient}>'],
+  ['+', '        <main className="mx-auto max-w-2xl px-6 py-12">'],
+  ['+', '          <h1 className="text-2xl font-semibold">Wallet</h1>'],
+  ['+', '          <Portfolio />'],
+  ['+', '        </main>'],
+  ['+', '      </QueryClientProvider>'],
+  ['+', '    </WagmiProvider>'],
   ['+', '  );'],
   [' ', '}'],
 ];
@@ -130,12 +131,12 @@ export const BUILD = {
   total: 19200,
 };
 
-const PROMPT = 'Build a sprint board with drag-and-drop columns.';
+const PROMPT = 'Build a wallet dashboard with live token balances.';
 
 const TOOLS = [
-  ['read_file', 'src/App.tsx', '38 lines'],
+  ['read_file', 'src/App.tsx', '42 lines'],
   ['list_dir', 'src/components', '6 entries'],
-  ['read_file', 'src/types.ts', '12 lines'],
+  ['read_file', 'src/lib/tokens.ts', '14 lines'],
 ];
 
 const clamp = (n) => Math.max(0, Math.min(1, n));
@@ -159,7 +160,7 @@ const RULES = [
     /^\b(?:import|export|from|const|let|var|async|await|function|return|for|of|in|if|else|new|class|extends|implements|yield|type|interface|default|try|catch|throw|typeof)\b/,
   ],
   ['literal', /^\b(?:true|false|null|undefined|this)\b/],
-  ['number', /^\b\d+(?:\.\d+)?\b/],
+  ['number', /^\b\d+(?:\.\d+)?n?\b/],
   ['type', /^\b[A-Z][A-Za-z0-9_]*\b/],
   ['fn', /^\b[a-zA-Z_$][\w$]*(?=\s*\()/],
   ['word', /^[a-zA-Z_$][\w$]*/],
@@ -369,7 +370,7 @@ export default function BuildFlow({ t, w, h }) {
               <span className="h-[11px] w-[11px] rounded-full" style={{ background: '#28C840' }} />
             </span>
             <span className="ml-1.5" style={{ color: C.dim }}>
-              sprint-board/main
+              wallet-app/main
             </span>
 
             <span className="ml-auto flex items-center gap-2.5">
@@ -409,7 +410,7 @@ export default function BuildFlow({ t, w, h }) {
             ))}
 
             {writeShown > 0 && (
-              <FileBlock title="Write" path="src/components/Board.tsx" lines={WRITE_LINES} shown={writeShown} />
+              <FileBlock title="Write" path="src/components/Portfolio.tsx" lines={WRITE_LINES} shown={writeShown} />
             )}
 
             {editShown > 0 && (
