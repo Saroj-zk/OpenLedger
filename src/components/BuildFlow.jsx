@@ -4,26 +4,29 @@ import React from 'react';
    Build — an agent writing an application, in its own terminal.
 
    The other runs on this stage are product UI. This one is a developer
-   tool, so it is drawn as a developer tool: a dark window that ignores
-   the site's theme entirely, a monospace transcript, tool calls with
-   their results, and two real files being written into a real project.
+   tool, so it is drawn as one: a dark window that ignores the site's
+   theme entirely, a monospace transcript, tool calls with their results,
+   and an application taking shape across two files.
 
-   The code is the point of the shot. It is not lorem — it is a working
-   streaming client against the OpenLedger SDK and the route that serves
-   it, syntax-highlighted and diffed the way an editor would, because a
-   viewer who writes software for a living will read it and a fake will
-   cost more credibility than the shot buys.
+   What is on screen is an app being built from a sentence — a board
+   component and the page that mounts it — not an integration with
+   anything. The agent is the product here; OpenLedger is the line in
+   the footer that says which model is answering.
 
-   Everything is drawn at a fixed 880x540 and scaled to the stage, and
-   the run is a pure function of elapsed milliseconds like every other
+   The code is the point of the shot, so it is real TypeScript and real
+   JSX: a viewer who writes software for a living will read it frame by
+   frame, and a fake costs more credibility than the shot buys.
+
+   Everything is drawn at a fixed size and scaled to the stage, and the
+   run is a pure function of elapsed milliseconds like every other
    script here.
    ===================================================================== */
 
 const W = 880;
-const H = 508;
+const H = 520;
 
-const BAR = 44;
-const FOOT = 52;
+const BAR = 40;
+const FOOT = 46;
 
 /* The terminal's own palette. Deliberately not the design tokens: this
    window is dark whichever theme the page is in. */
@@ -45,47 +48,47 @@ const MONO = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberat
 
 /* --------------------------------------------------------------- code */
 
-const NEW_FILE = `import OpenLedger from '@openledger/sdk';
-import type { Message } from './types';
+const NEW_FILE = `import { useState } from 'react';
+import type { Task, Status } from '../types';
+import { Column } from './Column';
 
-const client = new OpenLedger({
-  apiKey: process.env.OPENLEDGER_API_KEY,
-});
+const COLUMNS: Status[] = ['todo', 'doing', 'done'];
 
-export async function* stream(messages: Message[], model = 'auto') {
-  const res = await client.chat.completions.create({
-    model,
-    messages,
-    stream: true,
-  });
+export function Board({ initial }: { initial: Task[] }) {
+  const [tasks, setTasks] = useState(initial);
+  const inColumn = (s: Status) => tasks.filter((t) => t.status === s);
 
-  for await (const chunk of res) {
-    const delta = chunk.choices[0]?.delta?.content;
-    if (delta) yield delta;
-  }
+  const move = (id: string, to: Status) =>
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: to } : t)));
+
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {COLUMNS.map((status) => (
+        <Column key={status} status={status} tasks={inColumn(status)} onDrop={move} />
+      ))}
+    </div>
+  );
 }`;
 
 /* A patch, written the way a diff reads: a mark per line, and removed
    lines holding their number instead of advancing it. */
 const PATCH = [
-  [' ', 'export async function POST(req: Request) {'],
-  [' ', '  const { messages, model } = await req.json();'],
-  ['-', '  const reply = await complete(messages);'],
-  ['-', '  return Response.json({ reply });'],
-  ['+', '  const encoder = new TextEncoder();'],
+  [' ', "import { useTasks } from './hooks/useTasks';"],
+  ['+', "import { Board } from './components/Board';"],
+  [' ', "import { Spinner } from './components/Spinner';"],
+  [' ', ''],
+  [' ', 'export default function App() {'],
+  [' ', '  const tasks = useTasks();'],
+  ['-', '  return <TaskList tasks={tasks} />;'],
+  ['+', '  if (!tasks) return <Spinner />;'],
   ['+', ''],
-  ['+', '  const body = new ReadableStream({'],
-  ['+', '    async start(controller) {'],
-  ['+', '      for await (const token of stream(messages, model)) {'],
-  ['+', '        controller.enqueue(encoder.encode(token));'],
-  ['+', '      }'],
-  ['+', '      controller.close();'],
-  ['+', '    },'],
-  ['+', '  });'],
-  ['+', ''],
-  ['+', '  return new Response(body, {'],
-  ['+', "    headers: { 'content-type': 'text/event-stream' },"],
-  ['+', '  });'],
+  ['+', '  return ('],
+  ['+', '    <main className="mx-auto max-w-5xl px-6 py-10">'],
+  ['+', '      <h1 className="text-2xl font-semibold">Sprint board</h1>'],
+  ['+', '      <p className="mb-6 text-sm text-slate-500">Drag a card to move it.</p>'],
+  ['+', '      <Board initial={tasks} />'],
+  ['+', '    </main>'],
+  ['+', '  );'],
   [' ', '}'],
 ];
 
@@ -103,7 +106,7 @@ const WRITE_LINES = number(
   NEW_FILE.split('\n').map((text) => ['+', text]),
   1,
 );
-const EDIT_LINES = number(PATCH, 18);
+const EDIT_LINES = number(PATCH, 1);
 
 const ADDED = [...WRITE_LINES, ...EDIT_LINES].filter((l) => l.mark === '+').length;
 const REMOVED = EDIT_LINES.filter((l) => l.mark === '-').length;
@@ -127,12 +130,12 @@ export const BUILD = {
   total: 19200,
 };
 
-const PROMPT = 'Add streaming chat to the app using OpenLedger.';
+const PROMPT = 'Build a sprint board with drag-and-drop columns.';
 
 const TOOLS = [
-  ['read_file', 'src/api/chat.ts', '64 lines'],
-  ['grep', '"openledger" src/', '0 matches'],
-  ['read_file', 'package.json', '38 lines'],
+  ['read_file', 'src/App.tsx', '38 lines'],
+  ['list_dir', 'src/components', '6 entries'],
+  ['read_file', 'src/types.ts', '12 lines'],
 ];
 
 const clamp = (n) => Math.max(0, Math.min(1, n));
@@ -142,11 +145,15 @@ const lerp = (a, b, p) => a + (b - a) * p;
 
 /* ------------------------------------------------------- highlighting */
 
-/* Enough TypeScript to colour these two files correctly. A full grammar
-   would be a dependency and a bundle; this is nine rules and no import. */
+/* Enough TypeScript and JSX to colour these two files correctly. A real
+   grammar would be a dependency and a bundle; this is a dozen rules and
+   no import. Order is the trick — an attribute has to be claimed before
+   the plain identifier rule can take it. */
 const RULES = [
   ['comment', /^\/\/[^\n]*/],
   ['string', /^(?:'[^']*'|"[^"]*"|`[^`]*`)/],
+  ['tag', /^<\/?[A-Za-z][\w.]*/],
+  ['attr', /^[a-zA-Z_$][\w$]*(?=\s*=\s*[{"'])/],
   [
     'keyword',
     /^\b(?:import|export|from|const|let|var|async|await|function|return|for|of|in|if|else|new|class|extends|implements|yield|type|interface|default|try|catch|throw|typeof)\b/,
@@ -161,6 +168,9 @@ const RULES = [
 ];
 
 const TONE = {
+  text: C.text,
+  tag: '#7EE787',
+  attr: '#79C0FF',
   comment: C.faint,
   string: '#A5D6FF',
   keyword: '#FF7B72',
@@ -183,15 +193,49 @@ function tokens(src) {
 
   const out = [];
   let rest = src;
+  /* Prose between two JSX tags is not TypeScript. Without this, the
+     capital letter starting a sentence gets coloured as a type name,
+     which is exactly the sort of tell a developer notices. Each line is
+     tokenized on its own, so the machine only has to hold within one. */
+  let mode = 'code';
+  let depth = 0;
+
   while (rest) {
+    if (mode === 'text') {
+      const run = /^[^<{]+/.exec(rest);
+      if (run) {
+        out.push(['text', run[0]]);
+        rest = rest.slice(run[0].length);
+        continue;
+      }
+      if (rest[0] === '{') {
+        mode = 'expr';
+        depth = 1;
+        out.push(['punct', '{']);
+        rest = rest.slice(1);
+        continue;
+      }
+      mode = 'code'; /* a '<': let the tag rule take it */
+    }
+
     for (const [kind, re] of RULES) {
       const m = re.exec(rest);
       if (!m) continue;
+
+      if (kind === 'tag') mode = 'tag';
+      else if (mode === 'tag' && m[0] === '>') mode = 'text';
+      else if (mode === 'expr' && m[0] === '{') depth += 1;
+      else if (mode === 'expr' && m[0] === '}') {
+        depth -= 1;
+        if (depth === 0) mode = 'text';
+      }
+
       out.push([kind, m[0]]);
       rest = rest.slice(m[0].length);
       break;
     }
   }
+
   cache.set(src, out);
   return out;
 }
@@ -325,7 +369,7 @@ export default function BuildFlow({ t, w, h }) {
               <span className="h-[11px] w-[11px] rounded-full" style={{ background: '#28C840' }} />
             </span>
             <span className="ml-1.5" style={{ color: C.dim }}>
-              openledger-app/main
+              sprint-board/main
             </span>
 
             <span className="ml-auto flex items-center gap-2.5">
@@ -365,22 +409,22 @@ export default function BuildFlow({ t, w, h }) {
             ))}
 
             {writeShown > 0 && (
-              <FileBlock title="Write" path="src/lib/openledger.ts" lines={WRITE_LINES} shown={writeShown} />
+              <FileBlock title="Write" path="src/components/Board.tsx" lines={WRITE_LINES} shown={writeShown} />
             )}
 
             {editShown > 0 && (
-              <FileBlock title="Edit" path="src/api/chat.ts" lines={EDIT_LINES} shown={editShown} />
+              <FileBlock title="Edit" path="src/App.tsx" lines={EDIT_LINES} shown={editShown} />
             )}
 
             {t >= BUILD.cmdAt && (
               <div className="flex flex-col gap-1" style={{ animation: 'msg-in .25s ease-out both' }}>
                 <span className="flex items-center gap-2">
                   <span style={{ color: C.faint }}>$</span>
-                  <span style={{ color: C.text }}>npm run typecheck</span>
+                  <span style={{ color: C.text }}>npm run build</span>
                 </span>
                 {t >= BUILD.cmdOut && (
                   <span className="pl-[18px]" style={{ color: C.add, animation: 'msg-in .25s ease-out both' }}>
-                    ✓ no errors · 2.1s
+                    ✓ built in 1.24s · 0 errors
                   </span>
                 )}
               </div>
@@ -399,7 +443,7 @@ export default function BuildFlow({ t, w, h }) {
                 <span style={{ color: C.text }}>2 files changed</span>
                 <span style={{ color: C.add }}>+{ADDED}</span>
                 <span style={{ color: C.del }}>−{REMOVED}</span>
-                <span style={{ color: C.dim }}>· typecheck passed</span>
+                <span style={{ color: C.dim }}>· build passed</span>
               </div>
             )}
           </div>
